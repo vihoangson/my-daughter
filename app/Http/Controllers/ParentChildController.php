@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\UserParents;
 use App\Models\UserKid;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class ParentChildController extends Controller
 {
@@ -32,5 +33,67 @@ class ParentChildController extends Controller
         $parent->kids()->detach($kid->id);
         return response()->json(['message' => 'Kid detached']);
     }
-}
 
+    public function currentKids(Request $request)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
+        $parent = UserParents::find($user->id);
+        if(!$parent) return response()->json([]);
+        return response()->json($parent->kids()->withCount('parents')->get());
+    }
+
+    public function storeKid(Request $request)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'nullable|string|min:4'
+        ]);
+        $password = $data['password'] ?? 'password';
+        $kid = UserKid::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($password),
+            'type' => 'child'
+        ]);
+        $parent = UserParents::find($user->id);
+        if($parent) {
+            $parent->kids()->syncWithoutDetaching([$kid->id]);
+        }
+        return response()->json(['kid' => $kid, 'default_password' => $password], 201);
+    }
+
+    public function updateKid(Request $request, UserKid $kid)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
+        $parent = UserParents::find($user->id);
+        if(!$parent || !$parent->kids()->where('users.id',$kid->id)->exists()) return response()->json(['message'=>'Not related'], 403);
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,'.$kid->id,
+            'password' => 'nullable|string|min:4'
+        ]);
+        $kid->name = $data['name'];
+        $kid->email = $data['email'];
+        if(!empty($data['password'])) $kid->password = Hash::make($data['password']);
+        $kid->save();
+        return response()->json(['kid'=>$kid]);
+    }
+
+    public function destroyKid(Request $request, UserKid $kid)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
+        $parent = UserParents::find($user->id);
+        if(!$parent || !$parent->kids()->where('users.id',$kid->id)->exists()) return response()->json(['message'=>'Not related'], 403);
+        // Detach relation first (optional cascade)
+        $parent->kids()->detach($kid->id);
+        // Optionally fully delete the kid account:
+        $kid->delete();
+        return response()->json(['message'=>'Deleted']);
+    }
+}

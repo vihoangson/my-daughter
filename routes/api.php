@@ -25,6 +25,10 @@ Route::post('auth/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function(){
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
+    Route::get('parent/kids', [ParentChildController::class, 'currentKids']);
+    Route::post('parent/kids', [ParentChildController::class, 'storeKid']);
+    Route::put('parent/kids/{kid}', [ParentChildController::class, 'updateKid']);
+    Route::delete('parent/kids/{kid}', [ParentChildController::class, 'destroyKid']);
 });
 
 Route::apiResource('reward-punishments', RewardPunishmentController::class);
