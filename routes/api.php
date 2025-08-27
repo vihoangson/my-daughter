@@ -27,11 +27,22 @@ Route::post('auth/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function(){
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
-    Route::get('parent/kids', [ParentChildController::class, 'currentKids']);
-    Route::post('parent/kids', [ParentChildController::class, 'storeKid']);
-    Route::put('parent/kids/{kid}', [ParentChildController::class, 'updateKid']);
-    Route::delete('parent/kids/{kid}', [ParentChildController::class, 'destroyKid']);
-    Route::get('parent/kids/{kid}/details', [ParentChildController::class, 'kidDetails']);
+
+    // Parent routes
+    Route::middleware('parent')->prefix('parent')->group(function() {
+        Route::get('profile', [ParentChildController::class, 'profile']);
+        Route::get('kids', [ParentChildController::class, 'currentKids']);
+        Route::post('kids', [ParentChildController::class, 'storeKid']);
+        Route::put('kids/{kid}', [ParentChildController::class, 'updateKid']);
+        Route::delete('kids/{kid}', [ParentChildController::class, 'destroyKid']);
+        Route::get('kids/{kid}/details', [ParentChildController::class, 'kidDetails']);
+
+        // Request management routes
+        Route::get('requests', [KidRequestController::class, 'parentRequests']);
+        Route::get('kid/{kid}/requests', [KidRequestController::class, 'kidRequests']);
+        Route::put('requests/{id}/process', [KidRequestController::class, 'processRequest']);
+        Route::put('requests/{id}/complete', [KidRequestController::class, 'completeRequest']);
+    });
 
     // Kid routes
     Route::middleware('kid')->prefix('kid')->group(function() {

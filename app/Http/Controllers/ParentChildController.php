@@ -154,4 +154,14 @@ class ParentChildController extends Controller
             'point_history' => $kidDetails->rewardPunishments
         ]);
     }
+
+    public function profile(Request $request)
+    {
+        $user = $request->user();
+        $parent = UserParents::with('kids')->find($user->id);
+
+        return response()->json([
+            'profile' => $parent,
+        ]);
+    }
 }

@@ -1,14 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import axios from 'axios';
 import Login from './components/Login.vue';
-import Dashboard from './components/Dashboard.vue';
+import ParentDashboard from './components/ParentDashboard.vue';
 import KidDashboard from './components/KidDashboard.vue';
 
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Dashboard,
+    component: ParentDashboard,
     meta: { requiresAuth: true, requiresParent: true }
   },
   {

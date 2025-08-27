@@ -109,11 +109,11 @@ class KidRequestController extends Controller
 
         // Get all kids associated with this parent
         $parent = UserParents::findOrFail($user->id);
-        $kidIds = $parent->kids()->pluck('child_id')->toArray();
+        $kidIds = $parent->kids()->pluck('users.id')->toArray();
 
         // Get all requests from these kids
         $requests = KidRequest::whereIn('child_id', $kidIds)
-            ->with('child:id,name,avatar')
+            ->with('child:id,name,email,avatar')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -121,7 +121,152 @@ class KidRequestController extends Controller
     }
 
     /**
-     * Update request status (for parents)
+     * Get all requests for the parent dashboard
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function parentRequests(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            // Get all kids associated with this parent
+            $parent = UserParents::findOrFail($user->id);
+            $kidIds = $parent->kids()->pluck('users.id')->toArray();
+
+            // Get all requests from these kids
+            $requests = KidRequest::whereIn('child_id', $kidIds)
+                ->with('child')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'requests' => $requests
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in parentRequests: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error retrieving requests',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all requests for a specific kid (parent view)
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param int $kidId
+     * @return \Illuminate\Http\Response
+     */
+    public function kidRequests(Request $request, $kidId)
+    {
+        $user = $request->user();
+
+        // Make sure the kid belongs to this parent
+        $parent = UserParents::findOrFail($user->id);
+        $kidExists = $parent->kids()->where('users.id', $kidId)->exists();
+
+        if (!$kidExists) {
+            return response()->json(['message' => 'Kid not found or not related to this parent'], 404);
+        }
+
+        // Get all requests from this kid
+        $requests = KidRequest::where('child_id', $kidId)
+            ->with('child')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'requests' => $requests
+        ]);
+    }
+
+    /**
+     * Process a request (approve/reject)
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
+     * @return \Illuminate\Http\Response
+     */
+    public function processRequest(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:approved,rejected',
+            'scheduled_time' => 'nullable|date',
+            'parent_note' => 'nullable|string|max:500'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $user = $request->user();
+
+        // Find the request
+        $kidRequest = KidRequest::findOrFail($id);
+
+        // Check if the kid belongs to this parent
+        $parent = UserParents::findOrFail($user->id);
+        $kidExists = $parent->kids()->where('users.id', $kidRequest->child_id)->exists();
+
+        if (!$kidExists) {
+            return response()->json(['message' => 'Request not found or not related to your kids'], 404);
+        }
+
+        // Update the request
+        $kidRequest->status = $request->status;
+        $kidRequest->parent_id = $user->id;
+        $kidRequest->scheduled_time = $request->scheduled_time;
+        $kidRequest->parent_note = $request->parent_note;
+        $kidRequest->save();
+
+        return response()->json([
+            'message' => 'Request processed successfully',
+            'request' => $kidRequest
+        ]);
+    }
+
+    /**
+     * Mark a request as completed
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
+     * @return \Illuminate\Http\Response
+     */
+    public function completeRequest(Request $request, $id)
+    {
+        $user = $request->user();
+
+        // Find the request
+        $kidRequest = KidRequest::findOrFail($id);
+
+        // Check if the kid belongs to this parent
+        $parent = UserParents::findOrFail($user->id);
+        $kidExists = $parent->kids()->where('users.id', $kidRequest->child_id)->exists();
+
+        if (!$kidExists) {
+            return response()->json(['message' => 'Request not found or not related to your kids'], 404);
+        }
+
+        // Make sure the request is in approved status
+        if ($kidRequest->status !== KidRequest::STATUS_APPROVED) {
+            return response()->json(['message' => 'Only approved requests can be marked as completed'], 422);
+        }
+
+        // Update the request
+        $kidRequest->status = KidRequest::STATUS_COMPLETED;
+        $kidRequest->save();
+
+        return response()->json([
+            'message' => 'Request marked as completed',
+            'request' => $kidRequest
+        ]);
+    }
+
+    /**
+     * Update the status of a request
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
@@ -132,7 +277,7 @@ class KidRequestController extends Controller
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:approved,rejected,completed',
             'scheduled_time' => 'nullable|date',
-            'parent_note' => 'nullable|string',
+            'parent_note' => 'nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -140,23 +285,25 @@ class KidRequestController extends Controller
         }
 
         $user = Auth::user();
+        $kidRequest = KidRequest::findOrFail($id);
 
         // Get all kids associated with this parent
         $parent = UserParents::findOrFail($user->id);
         $kidIds = $parent->kids()->pluck('child_id')->toArray();
 
-        $kidRequest = KidRequest::where('id', $id)
-            ->whereIn('child_id', $kidIds)
-            ->firstOrFail();
+        // Check if the request belongs to one of parent's kids
+        if (!in_array($kidRequest->child_id, $kidIds)) {
+            return response()->json(['message' => 'Unauthorized. This request does not belong to your child.'], 403);
+        }
 
         $kidRequest->status = $request->status;
         $kidRequest->parent_id = $user->id;
 
-        if ($request->has('scheduled_time')) {
+        if ($request->filled('scheduled_time')) {
             $kidRequest->scheduled_time = $request->scheduled_time;
         }
 
-        if ($request->has('parent_note')) {
+        if ($request->filled('parent_note')) {
             $kidRequest->parent_note = $request->parent_note;
         }
 
