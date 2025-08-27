@@ -50,22 +50,23 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // Check user type requirements
-  if (to.meta.requiresParent && window.currentUser?.type !== 'parent') {
-    if (window.currentUser?.type === 'child') {
+  // Redirect kid users to the kid dashboard
+  if (window.currentUser && window.currentUser.type === 'child') {
+    if (to.path !== '/user-kid') {
       next('/user-kid');
-    } else {
-      next('/login');
+      return;
     }
+  }
+
+  // Check if route requires kid user
+  if (to.meta.requiresKid && (!window.currentUser || window.currentUser.type !== 'child')) {
+    next('/');
     return;
   }
 
-  if (to.meta.requiresKid && window.currentUser?.type !== 'child') {
-    if (window.currentUser?.type === 'parent') {
-      next('/');
-    } else {
-      next('/login');
-    }
+  // Check if route requires parent user
+  if (to.meta.requiresParent && (!window.currentUser || window.currentUser.type !== 'parent')) {
+    next('/user-kid');
     return;
   }
 

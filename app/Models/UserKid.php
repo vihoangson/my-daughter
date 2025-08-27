@@ -14,5 +14,8 @@ class UserKid extends User {
     public function rewardPunishments() {
         return $this->hasMany(RewardPunishment::class, 'child_id');
     }
-}
 
+    public function requests() {
+        return $this->hasMany(KidRequest::class, 'child_id');
+    }
+}

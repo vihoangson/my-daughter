@@ -12,5 +12,8 @@ class UserParents extends User {
     public function kids() {
         return $this->belongsToMany(UserKid::class, 'child_parent', 'parent_id', 'child_id')->withTimestamps();
     }
-}
 
+    public function handledRequests() {
+        return $this->hasMany(KidRequest::class, 'parent_id');
+    }
+}
