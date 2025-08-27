@@ -17,6 +17,27 @@
           Login
         </button>
       </form>
+
+      <!-- Separator -->
+      <div class="text-center my-4">
+        <hr class="my-3">
+        <span class="text-muted">hoặc</span>
+        <hr class="my-3">
+      </div>
+
+      <!-- Simple Login Button -->
+      <div class="text-center">
+        <button
+          @click="goToSimpleLogin"
+          class="btn btn-outline-success btn-lg w-100 py-3"
+        >
+          <i class="fas fa-mobile-alt me-2"></i>
+          Đăng nhập bằng số
+        </button>
+        <small class="text-muted d-block mt-2">
+          Sử dụng mật khẩu số 6 chữ số
+        </small>
+      </div>
     </div>
   </div>
 </template>
@@ -43,5 +64,9 @@ const submit = async () => {
   } catch(e){
     error.value = e.response?.data?.message || 'Login failed';
   } finally { loading.value=false; }
+};
+
+const goToSimpleLogin = () => {
+  router.push('/simple-login');
 };
 </script>

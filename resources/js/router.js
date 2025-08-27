@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import axios from 'axios';
 import Login from './components/Login.vue';
+import SimpleLogin from './components/SimpleLogin.vue';
 import ParentDashboard from './components/ParentDashboard.vue';
 import KidDashboard from './components/KidDashboard.vue';
 
@@ -15,6 +16,11 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: Login
+  },
+  {
+    path: '/simple-login',
+    name: 'SimpleLogin',
+    component: SimpleLogin
   },
   {
     path: '/user-kid',
