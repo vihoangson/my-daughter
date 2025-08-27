@@ -38,9 +38,25 @@ class ParentChildController extends Controller
     {
         $user = $request->user();
         if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
+
         $parent = UserParents::find($user->id);
-        if(!$parent) return response()->json([]);
-        return response()->json($parent->kids()->withCount('parents')->get());
+        if(!$parent) return response()->json(['kids' => []]);
+
+        $kids = $parent->kids()->withCount(['parents', 'requests as pending_requests' => function($query) {
+            $query->where('status', 'pending');
+        }])->get();
+
+        // Add the total points for each kid
+        foreach($kids as $kid) {
+            $totalPoints = 0;
+            $rewardPunishments = $kid->rewardPunishments()->get();
+            foreach($rewardPunishments as $rp) {
+                $totalPoints += $rp->type === 'reward' ? $rp->points : -$rp->points;
+            }
+            $kid->total_points = $totalPoints;
+        }
+
+        return response()->json(['kids' => $kids]);
     }
 
     public function storeKid(Request $request)
@@ -117,6 +133,7 @@ class ParentChildController extends Controller
         if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
         $parent = UserParents::find($user->id);
         if(!$parent || !$parent->kids()->where('users.id',$kid->id)->exists()) return response()->json(['message'=>'Not related'], 403);
+
         // Detach relation first (optional cascade)
         $parent->kids()->detach($kid->id);
         // Optionally fully delete the kid account:

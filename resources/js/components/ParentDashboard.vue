@@ -280,18 +280,46 @@ const logout = async () => {
 const fetchData = async () => {
   loading.value = true;
   try {
-    // Fetch both profile and kids data
-    const [profileResponse, kidsResponse, requestsResponse] = await Promise.all([
-      axios.get('/api/parent/profile'),
-      axios.get('/api/parent/kids'),
-      axios.get('/api/parent/requests')
-    ]);
+    // Fetch data separately to better handle errors
+    try {
+      const profileResponse = await axios.get('/api/parent/profile');
+      profile.value = profileResponse.data.profile;
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
 
-    profile.value = profileResponse.data.profile;
-    kids.value = kidsResponse.data.kids;
-    requests.value = requestsResponse.data.requests;
+    try {
+      const kidsResponse = await axios.get('/api/parent/kids');
+      // Check if response has expected format and assign accordingly
+      if (Array.isArray(kidsResponse.data)) {
+        kids.value = kidsResponse.data;
+      } else if (kidsResponse.data && Array.isArray(kidsResponse.data.kids)) {
+        kids.value = kidsResponse.data.kids;
+      } else {
+        console.error('Unexpected kids data format:', kidsResponse.data);
+        kids.value = [];
+      }
+      console.log('Kids data loaded:', kids.value);
+    } catch (error) {
+      console.error('Error fetching kids:', error);
+      kids.value = [];
+    }
+
+    try {
+      const requestsResponse = await axios.get('/api/parent/requests');
+      if (requestsResponse.data && Array.isArray(requestsResponse.data.requests)) {
+        requests.value = requestsResponse.data.requests;
+      } else {
+        console.error('Unexpected requests data format:', requestsResponse.data);
+        requests.value = [];
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+      requests.value = [];
+    }
+
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error('General error fetching data:', error);
     if (error.response?.status === 401 || error.response?.status === 403) {
       logout();
     }
