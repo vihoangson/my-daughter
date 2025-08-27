@@ -32,6 +32,12 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('parent/kids/{kid}/details', [ParentChildController::class, 'kidDetails']);
 });
 
+// Kid user routes
+Route::middleware(['auth:sanctum', 'kid'])->group(function(){
+    Route::get('kid/dashboard', [\App\Http\Controllers\KidUserController::class, 'dashboard']);
+    Route::get('kid/profile', [\App\Http\Controllers\KidUserController::class, 'profile']);
+});
+
 Route::apiResource('reward-punishments', RewardPunishmentController::class);
 Route::get('children', [RewardPunishmentController::class, 'children']);
 // Parent-Kid management

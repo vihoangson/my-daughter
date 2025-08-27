@@ -18,9 +18,14 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
         $token = $user->createToken('api')->plainTextToken;
+
+        // Determine redirect path based on user type
+        $redirectPath = $user->type === 'child' ? '/user-kid' : '/';
+
         return response()->json([
             'token' => $token,
-            'user' => $user
+            'user' => $user,
+            'redirect_path' => $redirectPath
         ]);
     }
 

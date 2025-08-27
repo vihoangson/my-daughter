@@ -35,10 +35,13 @@ const submit = async () => {
     const { data } = await axios.post('/api/auth/login', form);
     localStorage.setItem('token', data.token);
     axios.defaults.headers.common['Authorization'] = 'Bearer '+data.token;
-    router.push({ name: 'dashboard' });
+    window.currentUser = data.user;
+
+    // Redirect based on user type
+    const redirectPath = data.redirect_path || '/';
+    router.push(redirectPath);
   } catch(e){
     error.value = e.response?.data?.message || 'Login failed';
   } finally { loading.value=false; }
 };
 </script>
-
