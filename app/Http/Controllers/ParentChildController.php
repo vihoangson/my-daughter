@@ -72,14 +72,41 @@ class ParentChildController extends Controller
         if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
         $parent = UserParents::find($user->id);
         if(!$parent || !$parent->kids()->where('users.id',$kid->id)->exists()) return response()->json(['message'=>'Not related'], 403);
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$kid->id,
-            'password' => 'nullable|string|min:4'
+            'password' => 'nullable|string|min:4',
+            'avatar' => 'nullable|image|max:2048'
         ]);
+
         $kid->name = $data['name'];
         $kid->email = $data['email'];
         if(!empty($data['password'])) $kid->password = Hash::make($data['password']);
+
+        // Handle avatar upload
+        if($request->hasFile('avatar')) {
+            // Delete old avatar if exists
+            if($kid->avatar) {
+                try {
+                    \Storage::disk('s3_public')->delete($kid->avatar);
+                } catch(\Throwable $e) {
+                    \Storage::delete($kid->avatar);
+                }
+            }
+
+            // Upload new avatar
+            $avatarFile = $request->file('avatar');
+            $avatarPath = 'avatars/kids/' . time() . '_' . $avatarFile->getClientOriginalName();
+
+            try {
+                \Storage::disk('s3_public')->put($avatarPath, file_get_contents($avatarFile));
+                $kid->avatar = $avatarPath;
+            } catch(\Throwable $e) {
+                $kid->avatar = $avatarFile->store('avatars/kids', 'public');
+            }
+        }
+
         $kid->save();
         return response()->json(['kid'=>$kid]);
     }
@@ -95,5 +122,36 @@ class ParentChildController extends Controller
         // Optionally fully delete the kid account:
         $kid->delete();
         return response()->json(['message'=>'Deleted']);
+    }
+
+    public function kidDetails(Request $request, UserKid $kid)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
+
+        $parent = UserParents::find($user->id);
+        if(!$parent || !$parent->kids()->where('users.id',$kid->id)->exists()) {
+            return response()->json(['message'=>'Not related'], 403);
+        }
+
+        // Get kid with reward punishment history
+        $kidDetails = UserKid::with(['rewardPunishments' => function($query) {
+            $query->orderBy('created_at', 'desc');
+        }])->find($kid->id);
+
+        // Calculate total points
+        $totalPoints = $kidDetails->rewardPunishments->sum(function($rp) {
+            return $rp->type === 'reward' ? $rp->points : -$rp->points;
+        });
+
+        // Count total times received points
+        $totalRecords = $kidDetails->rewardPunishments->count();
+
+        return response()->json([
+            'kid' => $kidDetails,
+            'total_points' => $totalPoints,
+            'total_records' => $totalRecords,
+            'point_history' => $kidDetails->rewardPunishments
+        ]);
     }
 }

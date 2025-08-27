@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::post('parent/kids', [ParentChildController::class, 'storeKid']);
     Route::put('parent/kids/{kid}', [ParentChildController::class, 'updateKid']);
     Route::delete('parent/kids/{kid}', [ParentChildController::class, 'destroyKid']);
+    Route::get('parent/kids/{kid}/details', [ParentChildController::class, 'kidDetails']);
 });
 
 Route::apiResource('reward-punishments', RewardPunishmentController::class);

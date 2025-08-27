@@ -57,8 +57,9 @@
           <td>{{ k.parents_count }}</td>
           <td>
             <div class="btn-group btn-group-sm">
+              <button class="btn btn-success" @click="openDetails(k)">Chi tiết</button>
               <button class="btn btn-info" @click="openPoint(k)">Điểm</button>
-              <button class="btn btn-warning" @click="startEdit(k)">Sửa</button>
+              <button class="btn btn-warning" @click="openEdit(k)">Sửa</button>
               <button class="btn btn-danger" @click="remove(k)">Xóa</button>
             </div>
           </td>
@@ -67,12 +68,16 @@
     </table>
     <div v-else class="text-muted fst-italic">Chưa có trẻ em nào.</div>
     <KidPointModal v-if="pointKid" :kid="pointKid" @close="pointKid=null" @saved="handlePointSaved" />
+    <KidDetailsModal v-if="detailsKid" :kid="detailsKid" @close="detailsKid=null" />
+    <KidEditModal v-if="editKid" :kid="editKid" @close="editKid=null" @updated="handleKidUpdated" />
   </div>
 </template>
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import axios from 'axios';
 import KidPointModal from './KidPointModal.vue';
+import KidDetailsModal from './KidDetailsModal.vue';
+import KidEditModal from './KidEditModal.vue';
 
 const kids = ref([]);
 const showForm = ref(false);
@@ -83,6 +88,8 @@ const errors = reactive({});
 const editingId = ref(null);
 const form = reactive({ name: '', email: '', password: '' });
 const pointKid = ref(null);
+const detailsKid = ref(null);
+const editKid = ref(null);
 
 const clearErrors = ()=>{ Object.keys(errors).forEach(k=>delete errors[k]); };
 
@@ -142,6 +149,12 @@ const remove = async (k) => {
 
 const openPoint = (k) => { pointKid.value = k; };
 const handlePointSaved = () => { pointKid.value = null; };
+const openDetails = (k) => { detailsKid.value = k; };
+const openEdit = (k) => { editKid.value = k; };
+const handleKidUpdated = async () => {
+  editKid.value = null;
+  await fetchKids(); // Refresh the list after update
+};
 
 onMounted(fetchKids);
 </script>

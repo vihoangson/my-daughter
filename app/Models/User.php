@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'type', // added
+        'avatar',
     ];
 
     /**
@@ -42,4 +43,17 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    protected $appends = ['avatar_url'];
+
+    public function getAvatarUrlAttribute()
+    {
+        if (!$this->avatar) return null;
+
+        try {
+            return \Storage::disk('s3_public')->url($this->avatar);
+        } catch (\Throwable $e) {
+            return \Storage::url($this->avatar);
+        }
+    }
 }
