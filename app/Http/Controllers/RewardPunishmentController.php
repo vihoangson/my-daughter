@@ -2,7 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RewardPunishment;
-use App\Models\Child;
+use App\Models\UserKid;
 use Illuminate\Http\Request;
 
 class RewardPunishmentController extends Controller
@@ -51,7 +51,6 @@ class RewardPunishmentController extends Controller
 
     public function children()
     {
-        $children = Child::all();
-        return response()->json($children);
+        return response()->json(UserKid::all());
     }
 }

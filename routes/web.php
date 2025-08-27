@@ -15,7 +15,13 @@ use App\Http\Controllers\RewardPunishmentController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('home');
 });
+
+Route::view('/login', 'home');
+
+Route::get('/{any}', function () {
+    return view('home');
+})->where('any', '^(?!reward-punishments).*$');
 
 Route::resource('reward-punishments', RewardPunishmentController::class);

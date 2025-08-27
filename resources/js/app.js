@@ -1,24 +1,13 @@
-import { createApp, ref } from 'vue';
+import { createApp } from 'vue';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import RewardPunishmentList from './components/RewardPunishmentList.vue';
-import RewardPunishmentForm from './components/RewardPunishmentForm.vue';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import axios from 'axios';
+import App from './components/App.vue';
+import router from './router';
 
-const App = {
-  components: { RewardPunishmentList, RewardPunishmentForm },
-  setup() {
-    const editing = ref(null);
-    const refresh = ref(false);
-    const handleEdit = (item) => { editing.value = item; };
-    const handleSaved = () => { editing.value = null; refresh.value = !refresh.value; };
-    const handleCancel = () => { editing.value = null; };
-    return { editing, refresh, handleEdit, handleSaved, handleCancel };
-  },
-  template: `
-    <div class="container mt-4">
-      <RewardPunishmentForm v-if="editing !== null" :editing="editing" @cancel="handleCancel" @saved="handleSaved" />
-      <RewardPunishmentList v-else :refresh="refresh" @edit="handleEdit" />
-    </div>
-  `
-};
+const token = localStorage.getItem('token');
+if (token) {
+  axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+}
 
-createApp(App).mount('#app');
+createApp(App).use(router).mount('#app');
