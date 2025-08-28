@@ -320,11 +320,17 @@
                       @change="handleAvatarChange"
                     />
                   </div>
-                  <p class="small text-muted mt-2">Nhấp vào nút camera để thay đổi ảnh đại diện</p>
-                  <div v-if="avatarPreview" class="mt-2">
+                  <p class="small text-muted mt-2">Nhấp vào nút camera để thay đổi ảnh đại diện (sẽ tự động lưu)</p>
+                  <div v-if="updating" class="mt-2">
+                    <small class="text-info">
+                      <i class="fas fa-spinner fa-spin me-1"></i>
+                      Đang tải lên ảnh đại diện...
+                    </small>
+                  </div>
+                  <div v-else-if="avatarPreview" class="mt-2">
                     <small class="text-success">
                       <i class="fas fa-check-circle me-1"></i>
-                      Ảnh mới đã được chọn - nhấn "Lưu thay đổi" để cập nhật
+                      Ảnh đại diện đã được cập nhật thành công!
                     </small>
                   </div>
                 </div>
@@ -540,6 +546,11 @@ const fetchData = async () => {
     profile.value = profileData.value.profile;
     dashboardData.value = dashboardResponse.data;
 
+    // Debug avatar URL
+    console.log('Profile data:', profile.value);
+    console.log('Avatar URL:', profile.value.avatar_url);
+    console.log('Avatar path:', profile.value.avatar);
+
     // Initialize profile form with current data
     profileForm.value.name = profile.value.name;
   } catch (error) {
@@ -661,32 +672,99 @@ const changePassword = async () => {
   }
 };
 
-const handleAvatarChange = (event) => {
+const handleAvatarChange = async (event) => {
   const file = event.target.files[0];
-  if (file) {
-    // Validate file type and size
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      alert('Vui lòng chọn file ảnh (JPEG, PNG, JPG, GIF)');
-      event.target.value = '';
-      return;
+  if (!file) {
+    // Clear preview if no file selected
+    avatarPreview.value = null;
+    return;
+  }
+
+  // Validate file type and size
+  const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+  if (!validTypes.includes(file.type)) {
+    alert('Vui lòng chọn file ảnh (JPEG, PNG, JPG, GIF)');
+    event.target.value = '';
+    avatarPreview.value = null;
+    return;
+  }
+
+  if (file.size > 2048 * 1024) { // 2MB
+    alert('File ảnh không được vượt quá 2MB');
+    event.target.value = '';
+    avatarPreview.value = null;
+    return;
+  }
+
+  // Create preview immediately
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    avatarPreview.value = e.target.result;
+  };
+  reader.onerror = () => {
+    alert('Không thể đọc file ảnh. Vui lòng thử lại.');
+    event.target.value = '';
+    avatarPreview.value = null;
+    return;
+  };
+  reader.readAsDataURL(file);
+
+  // Auto-upload the avatar immediately
+  await uploadAvatarImmediately(file);
+};
+
+// New function to handle immediate avatar upload
+const uploadAvatarImmediately = async (file) => {
+  updating.value = true;
+  errors.value = {};
+
+  try {
+    // Create FormData for avatar upload
+    const formData = new FormData();
+    formData.append('name', profileForm.value.name); // Keep current name
+    formData.append('avatar', file);
+
+    const response = await axios.post('/api/kid/profile/update', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    // Update profile data completely
+    profile.value = response.data.profile;
+    profile.value.avatar_url = response.data.avatar_url;
+
+    // Update profileData as well
+    profileData.value.profile = profile.value;
+    profileData.value.avatar_url = response.data.avatar_url;
+
+    // Update window.currentUser for header and other components
+    if (window.currentUser) {
+      window.currentUser.name = profile.value.name;
+      window.currentUser.avatar = profile.value.avatar;
+      window.currentUser.avatar_url = response.data.avatar_url;
     }
 
-    if (file.size > 2048 * 1024) { // 2MB
-      alert('File ảnh không được vượt quá 2MB');
-      event.target.value = '';
-      return;
+    // Show success message
+    alert('Cập nhật ảnh đại diện thành công!');
+
+    // Clear preview after successful upload
+    avatarPreview.value = null;
+
+    // Clear file input
+    const avatarInput = document.querySelector('input[type="file"]');
+    if (avatarInput) {
+      avatarInput.value = '';
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      // Update preview immediately
-      avatarPreview.value = e.target.result;
-    };
-    reader.readAsDataURL(file);
+    // Force re-fetch data to update profile info
+    await fetchData();
 
-    // Store the file for submission
-    profileForm.value.avatar = file;
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    alert('Đã xảy ra lỗi khi tải ảnh đại diện lên. Vui lòng thử lại.');
+  } finally {
+    updating.value = false;
   }
 };
 
@@ -696,19 +774,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.cursor-pointer {
-  cursor: pointer;
-}
-
-.card {
-  transition: transform 0.2s;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-}
-
-.table td {
-  vertical-align: middle;
-}
+/* Add any component-specific styles here */
 </style>

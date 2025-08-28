@@ -25,7 +25,7 @@ class KidController extends Controller
 
         return response()->json([
             'profile' => $user,
-            'avatar_url' => $user->avatar ? Storage::url($user->avatar) : null
+            'avatar_url' => $user->avatar_url // Use the accessor which now uses public disk
         ]);
     }
 
@@ -111,14 +111,29 @@ class KidController extends Controller
 
         // Handle avatar upload
         if ($request->hasFile('avatar')) {
-            // Delete old avatar if exists
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
-            }
+            try {
+                // Delete old avatar if exists
+                if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                    Storage::disk('public')->delete($user->avatar);
+                }
 
-            // Store new avatar
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = $avatarPath;
+                // Store new avatar with unique name
+                $file = $request->file('avatar');
+                $fileName = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
+                $avatarPath = $file->storeAs('avatars', $fileName, 'public');
+                $user->avatar = $avatarPath;
+
+            } catch (\Exception $e) {
+                \Log::error('Avatar upload failed', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+
+                return response()->json([
+                    'message' => 'Avatar upload failed',
+                    'errors' => ['avatar' => ['Không thể tải lên ảnh đại diện. Vui lòng thử lại.']]
+                ], 422);
+            }
         }
 
         $user->save();
@@ -126,7 +141,7 @@ class KidController extends Controller
         return response()->json([
             'message' => 'Profile updated successfully',
             'profile' => $user,
-            'avatar_url' => $user->avatar ? Storage::url($user->avatar) : null
+            'avatar_url' => $user->avatar_url // Use the accessor for consistency
         ]);
     }
 

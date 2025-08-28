@@ -49,12 +49,23 @@ class User extends Authenticatable
 
     public function getAvatarUrlAttribute()
     {
-        if (!$this->avatar) return null;
+        if (!$this->avatar) {
+            return null;
+        }
 
         try {
-            return \Storage::disk('s3_public')->url($this->avatar);
+            // Use asset() helper to generate correct URL for local files
+            return asset('storage/' . $this->avatar);
         } catch (\Throwable $e) {
-            return \Storage::url($this->avatar);
+            // Log the error for debugging
+            \Log::warning('Avatar URL generation failed', [
+                'user_id' => $this->id,
+                'avatar_path' => $this->avatar,
+                'error' => $e->getMessage()
+            ]);
+
+            // Return null to trigger default avatar in frontend
+            return null;
         }
     }
 }
