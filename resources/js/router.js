@@ -7,8 +7,8 @@ import KidDashboard from './components/KidDashboard.vue';
 
 const routes = [
   {
-    path: '/',
-    name: 'Home',
+    path: '/user-parent',
+    name: 'ParentDashboard',
     component: ParentDashboard,
     meta: { requiresAuth: true, requiresParent: true }
   },
@@ -56,9 +56,21 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // Redirect kid users to the kid dashboard
-  if (window.currentUser && window.currentUser.type === 'child') {
-    if (to.path !== '/user-kid') {
+  // Redirect based on user type
+  if (window.currentUser) {
+    // For root path, redirect based on user type
+    if (to.path === '/') {
+      if (window.currentUser.type === 'parent') {
+        next('/user-parent');
+        return;
+      } else if (window.currentUser.type === 'child') {
+        next('/user-kid');
+        return;
+      }
+    }
+
+    // Redirect kid users to the kid dashboard if they try to access other pages
+    if (window.currentUser.type === 'child' && to.path !== '/user-kid') {
       next('/user-kid');
       return;
     }
@@ -66,13 +78,13 @@ router.beforeEach(async (to, from, next) => {
 
   // Check if route requires kid user
   if (to.meta.requiresKid && (!window.currentUser || window.currentUser.type !== 'child')) {
-    next('/');
+    next('/login');
     return;
   }
 
   // Check if route requires parent user
   if (to.meta.requiresParent && (!window.currentUser || window.currentUser.type !== 'parent')) {
-    next('/user-kid');
+    next('/login');
     return;
   }
 

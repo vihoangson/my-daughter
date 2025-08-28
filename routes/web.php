@@ -14,7 +14,13 @@ use App\Http\Controllers\RewardPunishmentController;
 |
 */
 
+// New homepage route
 Route::get('/', function () {
+    return view('homepage');
+});
+
+// Changed parent dashboard route
+Route::get('/user-parent', function () {
     return view('home');
 });
 
@@ -22,7 +28,7 @@ Route::view('/login', 'home');
 
 Route::get('/{any}', function () {
     return view('home');
-})->where('any', '^(?!reward-punishments).*$');
+})->where('any', '^(?!reward-punishments|user-parent).*$');
 
 Route::resource('reward-punishments', RewardPunishmentController::class);
 
