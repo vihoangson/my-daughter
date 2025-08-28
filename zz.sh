@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 # Remote server details
 REMOTE_USER="root"
 REMOTE_HOST="oop.vn"
-REMOTE_PATH="/var/www/vhosts/frontend_newui"
+REMOTE_PATH="/var/www/vhosts/my-daughter"
 
 # Function to display messages
 print_message() {
