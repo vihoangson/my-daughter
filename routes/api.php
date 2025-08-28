@@ -5,6 +5,7 @@ use App\Http\Controllers\ParentChildController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\KidController;
 use App\Http\Controllers\KidRequestController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,10 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('kid/{kid}/requests', [KidRequestController::class, 'kidRequests']);
         Route::put('requests/{id}/process', [KidRequestController::class, 'processRequest']);
         Route::put('requests/{id}/complete', [KidRequestController::class, 'completeRequest']);
+
+        // Settings routes
+        Route::get('system-info', [SettingsController::class, 'systemInfo']);
+        Route::get('system-status', [SettingsController::class, 'checkSystemStatus']);
     });
 
     // Kid routes

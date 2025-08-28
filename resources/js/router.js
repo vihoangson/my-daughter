@@ -2,16 +2,14 @@ import { createRouter, createWebHistory } from 'vue-router';
 import axios from 'axios';
 import Login from './components/Login.vue';
 import SimpleLogin from './components/SimpleLogin.vue';
+import Dashboard from './components/Dashboard.vue';
 import ParentDashboard from './components/ParentDashboard.vue';
 import KidDashboard from './components/KidDashboard.vue';
+import KidManager from './components/KidManager.vue';
+import KidDetail from './components/parent/KidDetail.vue';
+import Settings from './components/Settings.vue';
 
 const routes = [
-  {
-    path: '/',
-    name: 'Home',
-    component: ParentDashboard,
-    meta: { requiresAuth: true, requiresParent: true }
-  },
   {
     path: '/login',
     name: 'Login',
@@ -23,10 +21,40 @@ const routes = [
     component: SimpleLogin
   },
   {
+    path: '/',
+    name: 'Dashboard',
+    component: Dashboard,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/parent-dashboard',
+    name: 'ParentDashboard',
+    component: ParentDashboard,
+    meta: { requiresAuth: true, requiresParent: true }
+  },
+  {
     path: '/user-kid',
     name: 'KidDashboard',
     component: KidDashboard,
     meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/kid-manager',
+    name: 'KidManager',
+    component: KidManager,
+    meta: { requiresAuth: true, requiresParent: true }
+  },
+  {
+    path: '/kid/:id',
+    name: 'KidDetail',
+    component: KidDetail,
+    meta: { requiresAuth: true, requiresParent: true }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: Settings,
+    meta: { requiresAuth: true, requiresParent: true }
   }
 ];
 

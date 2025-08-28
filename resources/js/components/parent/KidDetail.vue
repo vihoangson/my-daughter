@@ -1,477 +1,437 @@
 <template>
-  <div class="col-12">
-    <!-- Kid Information Card -->
-    <div class="card mb-4">
-      <div class="card-header bg-primary text-white">
-        <div class="d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="fas fa-user me-2"></i>Thông tin chi tiết</h5>
-          <div>
-            <button class="btn btn-sm btn-outline-light me-2" @click="$router.push('/')">
-              <i class="fas fa-home me-1"></i>Dashboard
-            </button>
-            <button class="btn btn-sm btn-outline-light" @click="$emit('back')">
-              <i class="fas fa-arrow-left me-1"></i>Quay lại
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-4 text-center mb-4 mb-md-0">
-            <img
-              :src="kid.avatar_url || defaultAvatar"
-              alt="Avatar"
-              class="rounded-circle border mb-3"
-              style="width: 150px; height: 150px; object-fit: cover;"
-              @error="handleAvatarError"
-            />
-            <h4>{{ kid.name }}</h4>
-            <p class="text-muted">{{ kid.email }}</p>
-            <div class="mb-3">
-              <span class="badge bg-success fs-6 mb-2">{{ kid.total_points || 0 }} điểm</span>
-            </div>
-          </div>
-          <div class="col-md-8">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="card bg-light">
-                  <div class="card-body">
-                    <h6 class="card-title">Thông tin chung</h6>
-                    <div class="mb-2">
-                      <strong>ID:</strong> {{ kid.id }}
-                    </div>
-                    <div class="mb-2">
-                      <strong>Ngày tham gia:</strong> {{ formatDate(kid.created_at) }}
-                    </div>
-                    <div class="mb-2">
-                      <strong>Cập nhật lần cuối:</strong> {{ formatDate(kid.updated_at) }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="card bg-light">
-                  <div class="card-body">
-                    <h6 class="card-title">Thống kê</h6>
-                    <div class="mb-2">
-                      <strong>Tổng điểm:</strong> {{ kid.total_points || 0 }}
-                    </div>
-                    <div class="mb-2">
-                      <strong>Yêu cầu đang chờ:</strong> {{ pendingRequests.length }}
-                    </div>
-                    <div class="mb-2">
-                      <strong>Tổng số yêu cầu:</strong> {{ kidRequests.length }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  <div class="container-fluid">
+    <!-- Loading state -->
+    <div v-if="loading" class="text-center py-5">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Đang tải...</span>
       </div>
     </div>
 
-    <!-- Requests Management -->
-    <div class="row">
-      <div class="col-12">
+    <!-- Kid Details -->
+    <div v-else-if="kidData" class="row">
+      <!-- Kid Info Card -->
+      <div class="col-md-4 mb-4">
         <div class="card">
-          <div class="card-header bg-info text-white">
-            <ul class="nav nav-tabs card-header-tabs">
-              <li class="nav-item">
-                <a class="nav-link text-dark" :class="{ active: requestTab === 'pending' }" href="#" @click.prevent="requestTab = 'pending'">
-                  <i class="fas fa-clock me-1"></i>Yêu cầu đang chờ ({{ pendingRequests.length }})
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link text-dark" :class="{ active: requestTab === 'processed' }" href="#" @click.prevent="requestTab = 'processed'">
-                  <i class="fas fa-check-circle me-1"></i>Yêu cầu đã xử lý
-                </a>
-              </li>
-            </ul>
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-user-circle me-2"></i>
+              Thông tin trẻ em
+            </h5>
           </div>
           <div class="card-body">
-            <div v-if="loading" class="text-center py-4">
-              <div class="spinner-border text-primary" role="status"></div>
+            <div class="text-center mb-3">
+              <div class="avatar-circle mx-auto mb-3">
+                <i class="fas fa-child fa-3x text-primary"></i>
+              </div>
+              <h4 class="mb-1">{{ kidData.kid.name }}</h4>
+              <p class="text-muted">{{ kidData.kid.email }}</p>
             </div>
 
-            <!-- Pending Requests Tab -->
-            <div v-else-if="requestTab === 'pending'">
-              <div v-if="!pendingRequests.length" class="text-center py-4">
-                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                <p>Không có yêu cầu nào đang chờ xử lý</p>
+            <div class="row text-center">
+              <div class="col-4">
+                <h3 :class="kidData.total_points >= 0 ? 'text-success' : 'text-danger'">
+                  {{ kidData.total_points }}
+                </h3>
+                <small class="text-muted">Tổng điểm</small>
               </div>
-              <div v-else>
-                <div v-for="request in pendingRequests" :key="request.id" class="card mb-3 border-warning">
-                  <div class="card-body">
-                    <div class="d-flex justify-content-between mb-3">
-                      <div>
-                        <h5 class="card-title mb-1">{{ request.title }}</h5>
-                        <div>
-                          <span :class="getTypeClass(request.type)" class="badge me-2">
-                            {{ getTypeLabel(request.type) }}
-                          </span>
-                          <span class="badge bg-warning">Đang chờ</span>
-                        </div>
-                      </div>
-                      <div class="text-end">
-                        <small class="text-muted d-block">Ngày yêu cầu:</small>
-                        <strong>{{ formatDate(request.created_at) }}</strong>
-                      </div>
-                    </div>
-
-                    <p class="card-text mb-3">{{ request.description || 'Không có mô tả' }}</p>
-
-                    <form @submit.prevent="processRequest(request, 'approved')">
-                      <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                          <label for="scheduledTime" class="form-label">Thời gian thực hiện</label>
-                          <input
-                            type="datetime-local"
-                            class="form-control"
-                            id="scheduledTime"
-                            v-model="request.scheduledTime"
-                          >
-                        </div>
-                        <div class="col-md-6">
-                          <label for="parentNote" class="form-label">Ghi chú</label>
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="parentNote"
-                            v-model="request.parentNote"
-                            placeholder="Nhập ghi chú (nếu có)"
-                          >
-                        </div>
-                      </div>
-
-                      <div class="d-flex justify-content-end gap-2">
-                        <button
-                          type="button"
-                          class="btn btn-danger"
-                          @click="processRequest(request, 'rejected')"
-                          :disabled="processing"
-                        >
-                          <i class="fas fa-times me-1"></i>Từ chối
-                        </button>
-                        <button
-                          type="submit"
-                          class="btn btn-success"
-                          :disabled="processing"
-                        >
-                          <i class="fas fa-check me-1"></i>Chấp nhận
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
+              <div class="col-4">
+                <h3 class="text-info">{{ kidData.total_records }}</h3>
+                <small class="text-muted">Lần ghi nhận</small>
+              </div>
+              <div class="col-4">
+                <h3 class="text-warning">{{ pendingRequests }}</h3>
+                <small class="text-muted">Yêu cầu chờ</small>
               </div>
             </div>
 
-            <!-- Processed Requests Tab -->
-            <div v-else-if="requestTab === 'processed'">
-              <div v-if="!processedRequests.length" class="text-center py-4">
-                <i class="fas fa-history fa-3x text-muted mb-3"></i>
-                <p class="text-muted">Chưa có yêu cầu nào được xử lý</p>
+            <hr>
+
+            <div class="d-grid gap-2">
+              <button class="btn btn-outline-primary" @click="showAddPointModal = true">
+                <i class="fas fa-plus me-2"></i>Thêm điểm
+              </button>
+              <button class="btn btn-outline-info" @click="viewRequests">
+                <i class="fas fa-list me-2"></i>Xem yêu cầu
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Point History -->
+      <div class="col-md-8 mb-4">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="fas fa-history me-2"></i>
+              Lịch sử điểm
+            </h5>
+            <div class="btn-group btn-group-sm">
+              <button
+                class="btn"
+                :class="filterType === 'all' ? 'btn-primary' : 'btn-outline-primary'"
+                @click="filterType = 'all'"
+              >
+                Tất cả
+              </button>
+              <button
+                class="btn"
+                :class="filterType === 'reward' ? 'btn-success' : 'btn-outline-success'"
+                @click="filterType = 'reward'"
+              >
+                Thưởng
+              </button>
+              <button
+                class="btn"
+                :class="filterType === 'punishment' ? 'btn-danger' : 'btn-outline-danger'"
+                @click="filterType = 'punishment'"
+              >
+                Phạt
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div v-if="filteredHistory.length === 0" class="text-center py-4 text-muted">
+              <i class="fas fa-clipboard-list fa-3x mb-3 opacity-50"></i>
+              <p>Chưa có lịch sử điểm nào</p>
+            </div>
+            <div v-else>
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Ngày</th>
+                      <th>Loại</th>
+                      <th>Lý do</th>
+                      <th class="text-end">Điểm</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="record in paginatedHistory" :key="record.id">
+                      <td>
+                        <small>{{ formatDate(record.created_at) }}</small>
+                      </td>
+                      <td>
+                        <span
+                          class="badge"
+                          :class="record.type === 'reward' ? 'bg-success' : 'bg-danger'"
+                        >
+                          {{ record.type === 'reward' ? 'Thưởng' : 'Phạt' }}
+                        </span>
+                      </td>
+                      <td>{{ record.reason || 'Không có lý do' }}</td>
+                      <td class="text-end">
+                        <span
+                          :class="record.type === 'reward' ? 'text-success' : 'text-danger'"
+                          class="fw-bold"
+                        >
+                          {{ record.type === 'reward' ? '+' : '-' }}{{ record.points }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <div v-else>
-                <div class="table-responsive">
-                  <table class="table table-hover">
-                    <thead>
-                      <tr>
-                        <th>Tiêu đề</th>
-                        <th>Loại</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày yêu cầu</th>
-                        <th>Thời gian thực hiện</th>
-                        <th>Chi tiết</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="request in processedRequests" :key="request.id">
-                        <td>{{ request.title }}</td>
-                        <td>
-                          <span :class="getTypeClass(request.type)" class="badge">
-                            {{ getTypeLabel(request.type) }}
-                          </span>
-                        </td>
-                        <td>
-                          <span :class="getStatusClass(request.status)" class="badge">
-                            {{ getStatusLabel(request.status) }}
-                          </span>
-                        </td>
-                        <td>{{ formatDate(request.created_at) }}</td>
-                        <td>{{ formatDate(request.scheduled_time) || '-' }}</td>
-                        <td>
-                          <button class="btn btn-sm btn-primary" @click="viewRequestDetail(request)">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+
+              <!-- Pagination -->
+              <nav v-if="totalPages > 1" class="mt-3">
+                <ul class="pagination pagination-sm justify-content-center">
+                  <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                    <a class="page-link" href="#" @click.prevent="currentPage = 1">Đầu</a>
+                  </li>
+                  <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                    <a class="page-link" href="#" @click.prevent="currentPage--">Trước</a>
+                  </li>
+                  <li
+                    class="page-item"
+                    v-for="page in visiblePages"
+                    :key="page"
+                    :class="{ active: currentPage === page }"
+                  >
+                    <a class="page-link" href="#" @click.prevent="currentPage = page">{{ page }}</a>
+                  </li>
+                  <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                    <a class="page-link" href="#" @click.prevent="currentPage++">Sau</a>
+                  </li>
+                  <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                    <a class="page-link" href="#" @click.prevent="currentPage = totalPages">Cuối</a>
+                  </li>
+                </ul>
+              </nav>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Request Detail Modal -->
-    <div v-if="showDetailModal" class="modal d-block" style="background-color: rgba(0,0,0,0.5);">
+    <!-- Error state -->
+    <div v-else class="text-center py-5">
+      <div class="text-danger">
+        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+        <h5>Không thể tải thông tin trẻ em</h5>
+        <p>{{ errorMessage || 'Có lỗi xảy ra khi tải dữ liệu.' }}</p>
+        <button class="btn btn-primary" @click="loadKidDetails">Thử lại</button>
+      </div>
+    </div>
+
+    <!-- Add Point Modal -->
+    <div class="modal fade" :class="{ show: showAddPointModal }" :style="{ display: showAddPointModal ? 'block' : 'none' }" v-if="showAddPointModal">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Chi tiết yêu cầu</h5>
-            <button type="button" class="btn-close" @click="showDetailModal = false"></button>
+            <h5 class="modal-title">Thêm điểm cho {{ kidData?.kid.name }}</h5>
+            <button type="button" class="btn-close" @click="closeAddPointModal"></button>
           </div>
           <div class="modal-body">
-            <div v-if="detailRequest">
+            <form @submit.prevent="addPoint">
               <div class="mb-3">
-                <h5 class="mb-1">{{ detailRequest.title }}</h5>
-                <span
-                  :class="getTypeClass(detailRequest.type)"
-                  class="badge me-2">
-                  {{ getTypeLabel(detailRequest.type) }}
-                </span>
-                <span
-                  :class="getStatusClass(detailRequest.status)"
-                  class="badge">
-                  {{ getStatusLabel(detailRequest.status) }}
-                </span>
-              </div>
-
-              <div class="mb-3">
-                <strong>Mô tả:</strong>
-                <p class="mb-0">{{ detailRequest.description || 'Không có mô tả' }}</p>
-              </div>
-
-              <div class="mb-3">
-                <strong>Ngày yêu cầu:</strong>
-                <p class="mb-0">{{ formatDate(detailRequest.created_at) }}</p>
-              </div>
-
-              <div v-if="detailRequest.status !== 'pending'" class="mb-3">
-                <strong>Thời gian thực hiện:</strong>
-                <p class="mb-0">
-                  <span v-if="detailRequest.scheduled_time">
-                    {{ formatDate(detailRequest.scheduled_time) }}
-                  </span>
-                  <span v-else class="text-muted">Chưa xác định</span>
-                </p>
-              </div>
-
-              <div v-if="detailRequest.parent_note" class="mb-3">
-                <strong>Ghi chú từ phụ huynh:</strong>
-                <p class="mb-0">{{ detailRequest.parent_note }}</p>
-              </div>
-
-              <div v-if="detailRequest.status === 'approved' || detailRequest.status === 'completed'">
-                <div class="d-grid">
-                  <button
-                    v-if="detailRequest.status === 'approved'"
-                    class="btn btn-success"
-                    @click="markRequestCompleted(detailRequest)"
-                  >
-                    <i class="fas fa-check-double me-1"></i>Đánh dấu đã hoàn thành
-                  </button>
+                <label class="form-label">Loại *</label>
+                <div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="type" id="reward" value="reward" v-model="pointForm.type">
+                    <label class="form-check-label text-success" for="reward">
+                      <i class="fas fa-plus-circle me-1"></i>Thưởng
+                    </label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="type" id="punishment" value="punishment" v-model="pointForm.type">
+                    <label class="form-check-label text-danger" for="punishment">
+                      <i class="fas fa-minus-circle me-1"></i>Phạt
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
+              <div class="mb-3">
+                <label for="points" class="form-label">Số điểm *</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="points"
+                  v-model="pointForm.points"
+                  min="1"
+                  required
+                >
+              </div>
+              <div class="mb-3">
+                <label for="reason" class="form-label">Lý do</label>
+                <textarea
+                  class="form-control"
+                  id="reason"
+                  v-model="pointForm.reason"
+                  rows="3"
+                  placeholder="Nhập lý do thưởng/phạt..."
+                ></textarea>
+              </div>
+            </form>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="showDetailModal = false">Đóng</button>
+            <button type="button" class="btn btn-secondary" @click="closeAddPointModal">Hủy</button>
+            <button type="button" class="btn btn-primary" @click="addPoint" :disabled="adding">
+              <span v-if="adding" class="spinner-border spinner-border-sm me-2"></span>
+              Thêm điểm
+            </button>
           </div>
         </div>
       </div>
     </div>
+    <div class="modal-backdrop fade" :class="{ show: showAddPointModal }" v-if="showAddPointModal"></div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 
-const props = defineProps({
-  kid: {
-    type: Object,
-    required: true
-  },
-  selectedRequest: {
-    type: Object,
-    default: null
+const route = useRoute();
+const router = useRouter();
+
+const loading = ref(false);
+const adding = ref(false);
+const kidData = ref(null);
+const errorMessage = ref('');
+const showAddPointModal = ref(false);
+const filterType = ref('all');
+const currentPage = ref(1);
+const itemsPerPage = 10;
+const pendingRequests = ref(0);
+
+const pointForm = ref({
+  type: 'reward',
+  points: 1,
+  reason: ''
+});
+
+const kidId = computed(() => route.params.id);
+
+const filteredHistory = computed(() => {
+  if (!kidData.value?.point_history) return [];
+
+  if (filterType.value === 'all') {
+    return kidData.value.point_history;
   }
+
+  return kidData.value.point_history.filter(record => record.type === filterType.value);
 });
 
-const emit = defineEmits(['request-processed']);
-
-const loading = ref(true);
-const kidRequests = ref([]);
-const requestTab = ref('pending');
-const processing = ref(false);
-const showDetailModal = ref(false);
-const detailRequest = ref(null);
-
-const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjBGMEYwIi8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzgiIHI9IjEyIiBmaWxsPSIjQ0NDIi8+CjxwYXRoIGQ9Ik0yNSA3NUM0MCA2NSA2MCA2NSA3NSA3NVY3NUgyNVoiIGZpbGw9IiNDQ0MiLz4KPC9zdmc+';
-
-const pendingRequests = computed(() => {
-  return kidRequests.value.filter(req => req.status === 'pending');
+const totalPages = computed(() => {
+  return Math.ceil(filteredHistory.value.length / itemsPerPage);
 });
 
-const processedRequests = computed(() => {
-  return kidRequests.value.filter(req => req.status !== 'pending');
+const paginatedHistory = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filteredHistory.value.slice(start, end);
 });
 
-const formatDate = (dateString) => {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
+const visiblePages = computed(() => {
+  const total = totalPages.value;
+  const current = currentPage.value;
+  const delta = 2;
 
-const getTypeLabel = (type) => {
-  const types = {
-    'toy': 'Đồ chơi',
-    'food': 'Món ăn',
-    'playground': 'Khu vui chơi',
-    'activity': 'Hoạt động'
-  };
-  return types[type] || type;
-};
+  let pages = [];
+  for (let i = Math.max(1, current - delta); i <= Math.min(total, current + delta); i++) {
+    pages.push(i);
+  }
 
-const getTypeClass = (type) => {
-  const classes = {
-    'toy': 'bg-primary',
-    'food': 'bg-success',
-    'playground': 'bg-info',
-    'activity': 'bg-warning'
-  };
-  return classes[type] || 'bg-secondary';
-};
+  return pages;
+});
 
-const getStatusLabel = (status) => {
-  const statuses = {
-    'pending': 'Đang chờ',
-    'approved': 'Chấp nhận',
-    'rejected': 'Từ chối',
-    'completed': 'Hoàn thành'
-  };
-  return statuses[status] || status;
-};
-
-const getStatusClass = (status) => {
-  const classes = {
-    'pending': 'bg-warning',
-    'approved': 'bg-success',
-    'rejected': 'bg-danger',
-    'completed': 'bg-info'
-  };
-  return classes[status] || 'bg-secondary';
-};
-
-const handleAvatarError = (event) => {
-  event.target.src = defaultAvatar;
-};
-
-const fetchRequests = async () => {
+const loadKidDetails = async () => {
   loading.value = true;
+  errorMessage.value = '';
+
   try {
-    const response = await axios.get(`/api/parent/kid/${props.kid.id}/requests`);
-    kidRequests.value = response.data.requests;
+    const response = await axios.get(`/api/parent/kids/${kidId.value}/details`);
+    kidData.value = response.data;
 
-    // Add temporary properties for form inputs
-    kidRequests.value.forEach(request => {
-      request.scheduledTime = request.scheduled_time ? new Date(request.scheduled_time).toISOString().slice(0, 16) : '';
-      request.parentNote = request.parent_note || '';
-    });
-
+    // Load pending requests count
+    await loadPendingRequests();
   } catch (error) {
-    console.error('Error fetching kid requests:', error);
+    console.error('Error loading kid details:', error);
+    if (error.response?.status === 403) {
+      errorMessage.value = 'Bạn không có quyền xem thông tin này.';
+    } else if (error.response?.status === 404) {
+      errorMessage.value = 'Không tìm thấy thông tin trẻ em.';
+    } else {
+      errorMessage.value = 'Có lỗi xảy ra khi tải thông tin.';
+    }
   } finally {
     loading.value = false;
   }
 };
 
-const processRequest = async (request, status) => {
-  processing.value = true;
+const loadPendingRequests = async () => {
+  try {
+    const response = await axios.get(`/api/parent/kid/${kidId.value}/requests`);
+    const requests = response.data.requests || [];
+    pendingRequests.value = requests.filter(req => req.status === 'pending').length;
+  } catch (error) {
+    console.error('Error loading pending requests:', error);
+  }
+};
+
+const addPoint = async () => {
+  if (!pointForm.value.type || !pointForm.value.points) {
+    alert('Vui lòng điền đầy đủ thông tin.');
+    return;
+  }
+
+  adding.value = true;
 
   try {
-    const requestData = {
-      status: status,
-      scheduled_time: request.scheduledTime || null,
-      parent_note: request.parentNote || null
-    };
+    await axios.post('/api/reward-punishments', {
+      child_id: kidId.value,
+      type: pointForm.value.type,
+      points: pointForm.value.points,
+      reason: pointForm.value.reason
+    });
 
-    await axios.put(`/api/parent/requests/${request.id}/process`, requestData);
-
-    // Refresh requests
-    await fetchRequests();
-
-    // Notify parent component
-    emit('request-processed');
-
-    alert(`Yêu cầu đã được ${status === 'approved' ? 'chấp nhận' : 'từ chối'} thành công!`);
+    closeAddPointModal();
+    loadKidDetails(); // Reload data
   } catch (error) {
-    console.error('Error processing request:', error);
-    alert('Có lỗi xảy ra khi xử lý yêu cầu. Vui lòng thử lại.');
+    console.error('Error adding point:', error);
+    alert('Có lỗi xảy ra khi thêm điểm.');
   } finally {
-    processing.value = false;
+    adding.value = false;
   }
 };
 
-const viewRequestDetail = (request) => {
-  detailRequest.value = request;
-  showDetailModal.value = true;
+const viewRequests = () => {
+  // Navigate to requests page or show requests modal
+  router.push(`/kid/${kidId.value}/requests`);
 };
 
-const markRequestCompleted = async (request) => {
-  try {
-    await axios.put(`/api/parent/requests/${request.id}/complete`);
-
-    // Refresh requests
-    await fetchRequests();
-
-    // Notify parent component
-    emit('request-processed');
-
-    showDetailModal.value = false;
-    alert('Yêu cầu đã được đánh dấu hoàn thành!');
-  } catch (error) {
-    console.error('Error completing request:', error);
-    alert('Có lỗi xảy ra khi hoàn thành yêu cầu. Vui lòng thử lại.');
-  }
+const closeAddPointModal = () => {
+  showAddPointModal.value = false;
+  pointForm.value = {
+    type: 'reward',
+    points: 1,
+    reason: ''
+  };
 };
 
-watch(() => props.selectedRequest, (newValue) => {
-  if (newValue) {
-    requestTab.value = 'pending';
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  return new Date(dateString).toLocaleString('vi-VN');
+};
 
-    // Find the matching request in the kidRequests list
-    const matchingRequest = kidRequests.value.find(r => r.id === newValue.id);
-    if (matchingRequest) {
-      // Focus on this request by scrolling to it or highlighting it
-      // This could be implemented with a ref on the element
-    }
+// Watch for route changes
+watch(() => route.params.id, () => {
+  if (route.params.id) {
+    loadKidDetails();
   }
-}, { immediate: true });
+});
+
+// Reset pagination when filter changes
+watch(filterType, () => {
+  currentPage.value = 1;
+});
 
 onMounted(() => {
-  fetchRequests();
+  loadKidDetails();
 });
 </script>
 
 <style scoped>
+.avatar-circle {
+  width: 80px;
+  height: 80px;
+  background-color: #f8f9fa;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .card {
-  transition: transform 0.2s;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.card:hover {
-  transform: translateY(-2px);
+.card-header {
+  border-bottom: 1px solid rgba(0,0,0,0.125);
 }
 
-.table td {
-  vertical-align: middle;
+.table-hover tbody tr:hover {
+  background-color: rgba(0,0,0,0.025);
+}
+
+.modal {
+  background-color: rgba(0,0,0,0.5);
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.pagination-sm .page-link {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
 }
 </style>

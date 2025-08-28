@@ -1,160 +1,268 @@
 <template>
-  <div class="mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h4 class="mb-0">Trẻ em được quản lý</h4>
-      <button class="btn btn-sm btn-primary" @click="startCreate" v-if="!showForm">+ Thêm trẻ em</button>
-      <button class="btn btn-sm btn-secondary" @click="cancelForm" v-else>Đóng</button>
+  <div class="mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4>Trẻ em được quản lý</h4>
+      <button class="btn btn-primary btn-sm" @click="showAddModal = true">
+        <i class="fas fa-plus"></i> Thêm trẻ em
+      </button>
     </div>
 
-    <div v-if="showForm" class="card card-body mb-3">
-      <h5 class="mb-3" v-if="!editingId">Tạo trẻ em</h5>
-      <h5 class="mb-3" v-else>Chỉnh sửa trẻ em #{{ editingId }}</h5>
-      <div v-if="successMsg" class="alert alert-success py-2">{{ successMsg }}</div>
-      <div v-if="errorMsg" class="alert alert-danger py-2">{{ errorMsg }}</div>
-      <form @submit.prevent="submit">
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label class="form-label">Tên</label>
-            <input class="form-control" v-model="form.name" required />
-            <small class="text-danger" v-if="errors.name">{{ errors.name[0] }}</small>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Email</label>
-            <input type="email" class="form-control" v-model="form.email" required :disabled="editingId" />
-            <small class="text-danger" v-if="errors.email">{{ errors.email[0] }}</small>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label" v-if="!editingId">Mật khẩu (bỏ trống = password)</label>
-            <label class="form-label" v-else>Mật khẩu mới (để trống = giữ nguyên)</label>
-            <input type="text" class="form-control" v-model="form.password" />
-            <small class="text-danger" v-if="errors.password">{{ errors.password[0] }}</small>
-          </div>
-        </div>
-        <div class="mt-3 d-flex gap-2">
-          <button class="btn btn-success" :disabled="loading">
-            <span v-if="loading" class="spinner-border spinner-border-sm me-2" />{{ editingId ? 'Cập nhật' : 'Lưu' }}
-          </button>
-          <button type="button" class="btn btn-outline-secondary" @click="cancelForm">Hủy</button>
-        </div>
-      </form>
+    <!-- Loading state -->
+    <div v-if="loading" class="text-center py-4">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Đang tải...</span>
+      </div>
     </div>
 
-    <table class="table table-sm table-bordered" v-if="kids.length">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Tên</th>
-          <th>Email</th>
-          <th>Phụ huynh liên kết</th>
-          <th style="width:190px">Hành động</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="k in kids" :key="k.id">
-          <td>{{ k.id }}</td>
-          <td>{{ k.name }}</td>
-          <td>{{ k.email }}</td>
-          <td>{{ k.parents_count }}</td>
-          <td>
-            <div class="btn-group btn-group-sm">
-              <button class="btn btn-success" @click="openDetails(k)">Chi tiết</button>
-              <button class="btn btn-info" @click="openPoint(k)">Điểm</button>
-              <button class="btn btn-warning" @click="openEdit(k)">Sửa</button>
-              <button class="btn btn-danger" @click="remove(k)">Xóa</button>
+    <!-- Kids list -->
+    <div v-else-if="kids.length > 0" class="row">
+      <div v-for="kid in kids" :key="kid.id" class="col-md-6 col-lg-4 mb-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h6 class="card-title mb-1">{{ kid.name }}</h6>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#" @click.prevent="viewDetails(kid)">Xem chi tiết</a></li>
+                  <li><a class="dropdown-item" href="#" @click.prevent="editKid(kid)">Chỉnh sửa</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item text-danger" href="#" @click.prevent="deleteKid(kid)">Xóa</a></li>
+                </ul>
+              </div>
             </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <div v-else class="text-muted fst-italic">Chưa có trẻ em nào.</div>
-    <KidPointModal v-if="pointKid" :kid="pointKid" @close="pointKid=null" @saved="handlePointSaved" />
-    <KidDetailsModal v-if="detailsKid" :kid="detailsKid" @close="detailsKid=null" />
-    <KidEditModal v-if="editKid" :kid="editKid" @close="editKid=null" @updated="handleKidUpdated" />
+
+            <p class="card-text small text-muted mb-2">{{ kid.email }}</p>
+
+            <div class="row text-center">
+              <div class="col-6">
+                <div class="border-end">
+                  <h5 class="mb-0" :class="kid.total_points >= 0 ? 'text-success' : 'text-danger'">
+                    {{ kid.total_points || 0 }}
+                  </h5>
+                  <small class="text-muted">Điểm</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <h5 class="mb-0 text-warning">{{ kid.pending_requests || 0 }}</h5>
+                <small class="text-muted">Yêu cầu chờ</small>
+              </div>
+            </div>
+
+            <div class="mt-2">
+              <button class="btn btn-outline-primary btn-sm w-100" @click="viewDetails(kid)">
+                Xem chi tiết
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div v-else class="text-center py-5">
+      <div class="text-muted">
+        <i class="fas fa-users fa-3x mb-3 opacity-50"></i>
+        <h5>Chưa có trẻ em nào được quản lý</h5>
+        <p>Thêm trẻ em để bắt đầu quản lý hoạt động của các em.</p>
+        <button class="btn btn-primary" @click="showAddModal = true">
+          <i class="fas fa-plus"></i> Thêm trẻ em đầu tiên
+        </button>
+      </div>
+    </div>
+
+    <!-- Add Kid Modal -->
+    <div class="modal fade" :class="{ show: showAddModal }" :style="{ display: showAddModal ? 'block' : 'none' }" v-if="showAddModal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">{{ editingKid ? 'Chỉnh sửa trẻ em' : 'Thêm trẻ em mới' }}</h5>
+            <button type="button" class="btn-close" @click="closeModal"></button>
+          </div>
+          <div class="modal-body">
+            <form @submit.prevent="saveKid">
+              <div class="mb-3">
+                <label for="kidName" class="form-label">Tên trẻ em *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="kidName"
+                  v-model="kidForm.name"
+                  required
+                  :class="{ 'is-invalid': errors.name }"
+                >
+                <div v-if="errors.name" class="invalid-feedback">{{ errors.name[0] }}</div>
+              </div>
+              <div class="mb-3">
+                <label for="kidEmail" class="form-label">Email *</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="kidEmail"
+                  v-model="kidForm.email"
+                  required
+                  :class="{ 'is-invalid': errors.email }"
+                >
+                <div v-if="errors.email" class="invalid-feedback">{{ errors.email[0] }}</div>
+              </div>
+              <div class="mb-3" v-if="!editingKid">
+                <label for="kidPassword" class="form-label">Mật khẩu</label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="kidPassword"
+                  v-model="kidForm.password"
+                  placeholder="Để trống sẽ dùng mật khẩu mặc định: password"
+                >
+                <div class="form-text">Nếu để trống, mật khẩu mặc định sẽ là "password"</div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeModal">Hủy</button>
+            <button type="button" class="btn btn-primary" @click="saveKid" :disabled="saving">
+              <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
+              {{ editingKid ? 'Cập nhật' : 'Thêm' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-backdrop fade" :class="{ show: showAddModal }" v-if="showAddModal"></div>
   </div>
 </template>
+
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
-import KidPointModal from './KidPointModal.vue';
-import KidDetailsModal from './KidDetailsModal.vue';
-import KidEditModal from './KidEditModal.vue';
 
-const kids = ref([]);
-const showForm = ref(false);
+const router = useRouter();
 const loading = ref(false);
-const successMsg = ref('');
-const errorMsg = ref('');
-const errors = reactive({});
-const editingId = ref(null);
-const form = reactive({ name: '', email: '', password: '' });
-const pointKid = ref(null);
-const detailsKid = ref(null);
-const editKid = ref(null);
+const saving = ref(false);
+const kids = ref([]);
+const showAddModal = ref(false);
+const editingKid = ref(null);
+const errors = ref({});
 
-const clearErrors = ()=>{ Object.keys(errors).forEach(k=>delete errors[k]); };
+const kidForm = ref({
+  name: '',
+  email: '',
+  password: ''
+});
 
-const resetForm = () => {
-  form.name=''; form.email=''; form.password=''; editingId.value=null; successMsg.value=''; errorMsg.value=''; clearErrors();
-};
-
-const startCreate = () => { resetForm(); showForm.value = true; };
-const startEdit = (k) => {
-  resetForm();
-  editingId.value = k.id;
-  form.name = k.name;
-  form.email = k.email; // email locked
-  showForm.value = true;
-};
-const cancelForm = () => { resetForm(); showForm.value = false; };
-
-const fetchKids = async () => {
+const loadKids = async () => {
+  loading.value = true;
   try {
-    const { data } = await axios.get('/api/parent/kids');
-    kids.value = data;
-  } catch(e) { /* ignore */ }
-};
-
-const submit = async () => {
-  loading.value = true; successMsg.value=''; errorMsg.value=''; clearErrors();
-  try {
-    if(editingId.value){
-      const payload = { name: form.name, email: form.email }; // email kept for validation uniqueness rule context
-      if(form.password) payload.password = form.password;
-      await axios.put(`/api/parent/kids/${editingId.value}`, payload);
-      successMsg.value = 'Cập nhật thành công';
-    } else {
-      const { data } = await axios.post('/api/parent/kids', form);
-      successMsg.value = `Tạo thành công. Mật khẩu mặc định: ${data.default_password}`;
+    const response = await axios.get('/api/parent/kids');
+    kids.value = response.data.kids || [];
+  } catch (error) {
+    console.error('Error loading kids:', error);
+    if (error.response?.status === 403) {
+      alert('Bạn không có quyền truy cập chức năng này.');
     }
-    await fetchKids();
-    resetForm();
-    showForm.value = false;
-  } catch(e){
-    if(e.response?.status === 422){
-      const valErr = e.response.data.errors || {}; for(const k in valErr) errors[k]=valErr[k];
-      errorMsg.value = 'Vui lòng kiểm tra lại các trường.';
-    } else if(e.response?.data?.message) errorMsg.value = e.response.data.message; else errorMsg.value='Lỗi không xác định';
-  } finally { loading.value = false; }
-};
-
-const remove = async (k) => {
-  if(!confirm(`Xóa trẻ #${k.id}?`)) return;
-  try {
-    await axios.delete(`/api/parent/kids/${k.id}`);
-    kids.value = kids.value.filter(x=>x.id!==k.id);
-  } catch(e){
-    alert(e.response?.data?.message || 'Không xóa được');
+  } finally {
+    loading.value = false;
   }
 };
 
-const openPoint = (k) => { pointKid.value = k; };
-const handlePointSaved = () => { pointKid.value = null; };
-const openDetails = (k) => { detailsKid.value = k; };
-const openEdit = (k) => { editKid.value = k; };
-const handleKidUpdated = async () => {
-  editKid.value = null;
-  await fetchKids(); // Refresh the list after update
+const viewDetails = (kid) => {
+  router.push(`/kid/${kid.id}`);
 };
 
-onMounted(fetchKids);
+const editKid = (kid) => {
+  editingKid.value = kid;
+  kidForm.value = {
+    name: kid.name,
+    email: kid.email,
+    password: ''
+  };
+  showAddModal.value = true;
+};
+
+const saveKid = async () => {
+  saving.value = true;
+  errors.value = {};
+
+  try {
+    if (editingKid.value) {
+      // Update existing kid
+      await axios.put(`/api/parent/kids/${editingKid.value.id}`, kidForm.value);
+    } else {
+      // Create new kid
+      await axios.post('/api/parent/kids', kidForm.value);
+    }
+
+    closeModal();
+    loadKids();
+  } catch (error) {
+    console.error('Error saving kid:', error);
+    if (error.response?.data?.errors) {
+      errors.value = error.response.data.errors;
+    } else {
+      alert('Có lỗi xảy ra khi lưu thông tin.');
+    }
+  } finally {
+    saving.value = false;
+  }
+};
+
+const deleteKid = async (kid) => {
+  if (!confirm(`Bạn có chắc muốn xóa trẻ em "${kid.name}"?`)) {
+    return;
+  }
+
+  try {
+    await axios.delete(`/api/parent/kids/${kid.id}`);
+    loadKids();
+  } catch (error) {
+    console.error('Error deleting kid:', error);
+    alert('Có lỗi xảy ra khi xóa trẻ em.');
+  }
+};
+
+const closeModal = () => {
+  showAddModal.value = false;
+  editingKid.value = null;
+  kidForm.value = {
+    name: '',
+    email: '',
+    password: ''
+  };
+  errors.value = {};
+};
+
+onMounted(() => {
+  loadKids();
+});
 </script>
+
+<style scoped>
+.card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.modal {
+  background-color: rgba(0,0,0,0.5);
+}
+
+.border-end {
+  border-right: 1px solid #dee2e6;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+</style>
