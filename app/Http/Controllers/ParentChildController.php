@@ -175,10 +175,76 @@ class ParentChildController extends Controller
     public function profile(Request $request)
     {
         $user = $request->user();
-        $parent = UserParents::with('kids')->find($user->id);
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
+
+        $parent = UserParents::find($user->id);
+        if(!$parent) return response()->json(['message'=>'Parent not found'], 404);
 
         return response()->json([
+            'profile' => $parent
+        ]);
+    }
+
+    // Add updateProfile method to handle POST requests
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
+
+        $parent = UserParents::find($user->id);
+        if(!$parent) return response()->json(['message'=>'Parent not found'], 404);
+
+        // Validate basic fields first
+        $validator = \Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Only validate avatar if it's provided and is a file
+        if ($request->hasFile('avatar')) {
+            $avatarValidator = \Validator::make($request->all(), [
+                'avatar' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
+            if ($avatarValidator->fails()) {
+                return response()->json([
+                    'message' => 'Avatar validation failed',
+                    'errors' => $avatarValidator->errors()
+                ], 422);
+            }
+        }
+
+        // Update basic fields
+        $parent->name = $request->input('name');
+        if ($request->has('phone')) $parent->phone = $request->input('phone');
+        if ($request->has('address')) $parent->address = $request->input('address');
+
+        // Handle avatar upload if provided and valid
+        if ($request->hasFile('avatar') && $request->file('avatar')->isValid()) {
+            // Delete old avatar if exists
+            if ($parent->avatar) {
+                \Storage::disk('public')->delete($parent->avatar);
+            }
+
+            // Store new avatar
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            $parent->avatar = $avatarPath;
+        }
+
+        $parent->save();
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
             'profile' => $parent,
+            'avatar_url' => $parent->avatar ? asset('storage/' . $parent->avatar) : null
         ]);
     }
 }

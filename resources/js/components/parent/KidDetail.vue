@@ -1,228 +1,202 @@
 <template>
-  <div class="col-12">
-    <!-- Kid Information Card -->
-    <div class="card mb-4">
-      <div class="card-header bg-primary text-white">
-        <div class="d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="fas fa-user me-2"></i>Thông tin chi tiết</h5>
-          <div>
-            <button class="btn btn-sm btn-outline-light me-2" @click="$router.push('/')">
-              <i class="fas fa-home me-1"></i>Dashboard
-            </button>
-            <button class="btn btn-sm btn-outline-light" @click="$emit('back')">
-              <i class="fas fa-arrow-left me-1"></i>Quay lại
+  <div class="kid-details">
+    <div class="row">
+      <!-- Kid Information Card -->
+      <div class="col-md-4 mb-4">
+        <div class="card h-100">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-child me-2"></i>Thông tin trẻ em</h5>
+          </div>
+          <div class="card-body">
+            <div class="text-center mb-3">
+              <img
+                :src="kid.avatar_url || defaultAvatar"
+                alt="Avatar"
+                class="rounded-circle border"
+                style="width: 100px; height: 100px; object-fit: cover;"
+                @error="handleAvatarError"
+              />
+            </div>
+            <div class="row g-2">
+              <div class="col-12">
+                <strong>Tên:</strong> {{ kid.name }}
+              </div>
+              <div class="col-12">
+                <strong>Email:</strong> {{ kid.email }}
+              </div>
+              <div class="col-12">
+                <strong>Tổng điểm:</strong> <span class="badge bg-success">{{ kid.total_points || 0 }}</span>
+              </div>
+              <div class="col-12">
+                <strong>Yêu cầu đang chờ:</strong> <span class="badge bg-warning">{{ kid.pending_requests || 0 }}</span>
+              </div>
+              <div class="col-12">
+                <strong>Ngày tạo:</strong> {{ formatDate(kid.created_at) }}
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-outline-primary btn-sm w-100" @click="editKid">
+              <i class="fas fa-edit me-1"></i>Chỉnh sửa thông tin
             </button>
           </div>
         </div>
       </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-4 text-center mb-4 mb-md-0">
-            <img
-              :src="kid.avatar_url || defaultAvatar"
-              alt="Avatar"
-              class="rounded-circle border mb-3"
-              style="width: 150px; height: 150px; object-fit: cover;"
-              @error="handleAvatarError"
-            />
-            <h4>{{ kid.name }}</h4>
-            <p class="text-muted">{{ kid.email }}</p>
-            <div class="mb-3">
-              <span class="badge bg-success fs-6 mb-2">{{ kid.total_points || 0 }} điểm</span>
-            </div>
-          </div>
-          <div class="col-md-8">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="card bg-light">
-                  <div class="card-body">
-                    <h6 class="card-title">Thông tin chung</h6>
-                    <div class="mb-2">
-                      <strong>ID:</strong> {{ kid.id }}
-                    </div>
-                    <div class="mb-2">
-                      <strong>Ngày tham gia:</strong> {{ formatDate(kid.created_at) }}
-                    </div>
-                    <div class="mb-2">
-                      <strong>Cập nhật lần cuối:</strong> {{ formatDate(kid.updated_at) }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="card bg-light">
-                  <div class="card-body">
-                    <h6 class="card-title">Thống kê</h6>
-                    <div class="mb-2">
-                      <strong>Tổng điểm:</strong> {{ kid.total_points || 0 }}
-                    </div>
-                    <div class="mb-2">
-                      <strong>Yêu cầu đang chờ:</strong> {{ pendingRequests.length }}
-                    </div>
-                    <div class="mb-2">
-                      <strong>Tổng số yêu cầu:</strong> {{ kidRequests.length }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Tabs for different sections -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <ul class="nav nav-tabs">
-          <li class="nav-item">
-            <a class="nav-link" :class="{ active: mainTab === 'requests' }" href="#" @click.prevent="mainTab = 'requests'">
-              <i class="fas fa-bell me-1"></i>Yêu cầu
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" :class="{ active: mainTab === 'points' }" href="#" @click.prevent="mainTab = 'points'">
-              <i class="fas fa-star me-1"></i>Quản lý điểm
-            </a>
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Requests Management -->
-    <div v-if="mainTab === 'requests'" class="row">
-      <div class="col-12">
-        <div class="card">
-          <div class="card-header bg-info text-white">
+      <!-- Tabs for Points and Requests -->
+      <div class="col-md-8">
+        <div class="card h-100">
+          <div class="card-header">
             <ul class="nav nav-tabs card-header-tabs">
               <li class="nav-item">
-                <a class="nav-link text-dark" :class="{ active: requestTab === 'pending' }" href="#" @click.prevent="requestTab = 'pending'">
-                  <i class="fas fa-clock me-1"></i>Yêu cầu đang chờ ({{ pendingRequests.length }})
+                <a class="nav-link" :class="{ active: localTab === 'points' }" href="#" @click.prevent="localTab = 'points'">
+                  <i class="fas fa-star me-1"></i>Quản lý điểm
                 </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link text-dark" :class="{ active: requestTab === 'processed' }" href="#" @click.prevent="requestTab = 'processed'">
-                  <i class="fas fa-check-circle me-1"></i>Yêu cầu đã xử lý
+                <a class="nav-link" :class="{ active: localTab === 'requests' }" href="#" @click.prevent="localTab = 'requests'">
+                  <i class="fas fa-paper-plane me-1"></i>Yêu cầu
                 </a>
               </li>
             </ul>
           </div>
           <div class="card-body">
-            <div v-if="loading" class="text-center py-4">
-              <div class="spinner-border text-primary" role="status"></div>
-            </div>
-
-            <!-- Pending Requests Tab -->
-            <div v-else-if="requestTab === 'pending'">
-              <div v-if="!pendingRequests.length" class="text-center py-4">
-                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                <p>Không có yêu cầu nào đang chờ xử lý</p>
-              </div>
-              <div v-else>
-                <div v-for="request in pendingRequests" :key="request.id" class="card mb-3 border-warning">
-                  <div class="card-body">
-                    <div class="d-flex justify-content-between mb-3">
-                      <div>
-                        <h5 class="card-title mb-1">{{ request.title }}</h5>
-                        <div>
-                          <span :class="getTypeClass(request.type)" class="badge me-2">
-                            {{ getTypeLabel(request.type) }}
-                          </span>
-                          <span class="badge bg-warning">Đang chờ</span>
-                        </div>
+            <!-- Points Management Tab -->
+            <div v-if="localTab === 'points'">
+              <div class="row">
+                <div class="col-md-5">
+                  <!-- Add Points Form -->
+                  <AddPoints :kid-id="kid.id" @points-added="handlePointsAdded" />
+                </div>
+                <div class="col-md-7">
+                  <!-- Points History -->
+                  <div class="card">
+                    <div class="card-header bg-info text-white">
+                      <h5 class="mb-0"><i class="fas fa-history me-2"></i>Lịch sử điểm</h5>
+                    </div>
+                    <div class="card-body">
+                      <div v-if="loading" class="text-center">
+                        <div class="spinner-border text-primary" role="status"></div>
                       </div>
-                      <div class="text-end">
-                        <small class="text-muted d-block">Ngày yêu cầu:</small>
-                        <strong>{{ formatDate(request.created_at) }}</strong>
+                      <div v-else-if="!pointsHistory.length" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle fa-3x mb-3"></i>
+                        <p>Chưa có lịch sử điểm nào</p>
+                      </div>
+                      <div v-else class="table-responsive">
+                        <table class="table table-sm table-hover">
+                          <thead>
+                            <tr>
+                              <th>Ngày</th>
+                              <th>Loại</th>
+                              <th>Điểm</th>
+                              <th>Mô tả</th>
+                              <th>Hình ảnh</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="point in pointsHistory" :key="point.id">
+                              <td>{{ formatDate(point.created_at) }}</td>
+                              <td>
+                                <span v-if="point.type === 'reward'" class="badge bg-success">
+                                  <i class="fas fa-plus me-1"></i>Thưởng
+                                </span>
+                                <span v-else class="badge bg-danger">
+                                  <i class="fas fa-minus me-1"></i>Phạt
+                                </span>
+                              </td>
+                              <td>
+                                <span v-if="point.type === 'reward'" class="text-success fw-bold">
+                                  +{{ point.points }}
+                                </span>
+                                <span v-else class="text-danger fw-bold">
+                                  -{{ point.points }}
+                                </span>
+                              </td>
+                              <td>{{ point.description || '-' }}</td>
+                              <td>
+                                <img
+                                  v-if="point.evidence_url"
+                                  :src="point.evidence_url"
+                                  alt="Evidence"
+                                  class="img-thumbnail cursor-pointer"
+                                  style="max-width: 50px; max-height: 50px;"
+                                  @click="showImageModal(point.evidence_url)"
+                                />
+                                <span v-else>-</span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
                     </div>
-
-                    <p class="card-text mb-3">{{ request.description || 'Không có mô tả' }}</p>
-
-                    <form @submit.prevent="processRequest(request, 'approved')">
-                      <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                          <label for="scheduledTime" class="form-label">Thời gian thực hiện</label>
-                          <input
-                            type="datetime-local"
-                            class="form-control"
-                            id="scheduledTime"
-                            v-model="request.scheduledTime"
-                          >
-                        </div>
-                        <div class="col-md-6">
-                          <label for="parentNote" class="form-label">Ghi chú</label>
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="parentNote"
-                            v-model="request.parentNote"
-                            placeholder="Nhập ghi chú (nếu có)"
-                          >
-                        </div>
-                      </div>
-
-                      <div class="d-flex justify-content-end gap-2">
-                        <button
-                          type="button"
-                          class="btn btn-danger"
-                          @click="processRequest(request, 'rejected')"
-                          :disabled="processing"
-                        >
-                          <i class="fas fa-times me-1"></i>Từ chối
-                        </button>
-                        <button
-                          type="submit"
-                          class="btn btn-success"
-                          :disabled="processing"
-                        >
-                          <i class="fas fa-check me-1"></i>Chấp nhận
-                        </button>
-                      </div>
-                    </form>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Processed Requests Tab -->
-            <div v-else-if="requestTab === 'processed'">
-              <div v-if="!processedRequests.length" class="text-center py-4">
-                <i class="fas fa-history fa-3x text-muted mb-3"></i>
-                <p class="text-muted">Chưa có yêu cầu nào được xử lý</p>
+            <!-- Requests Tab -->
+            <div v-if="localTab === 'requests'">
+              <div v-if="loading" class="text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+              </div>
+              <div v-else-if="!kidRequests.length" class="text-center text-muted py-4">
+                <i class="fas fa-info-circle fa-3x mb-3"></i>
+                <p>Không có yêu cầu nào từ trẻ em này</p>
               </div>
               <div v-else>
                 <div class="table-responsive">
                   <table class="table table-hover">
                     <thead>
                       <tr>
+                        <th>Ngày yêu cầu</th>
                         <th>Tiêu đề</th>
                         <th>Loại</th>
+                        <th>Mô tả</th>
                         <th>Trạng thái</th>
-                        <th>Ngày yêu cầu</th>
-                        <th>Thời gian thực hiện</th>
-                        <th>Chi tiết</th>
+                        <th>Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="request in processedRequests" :key="request.id">
+                      <tr v-for="request in kidRequests" :key="request.id" :class="{ 'table-warning': request.status === 'pending' }">
+                        <td>{{ formatDate(request.created_at) }}</td>
                         <td>{{ request.title }}</td>
                         <td>
                           <span :class="getTypeClass(request.type)" class="badge">
                             {{ getTypeLabel(request.type) }}
                           </span>
                         </td>
+                        <td>{{ request.description }}</td>
                         <td>
-                          <span :class="getStatusClass(request.status)" class="badge">
-                            {{ getStatusLabel(request.status) }}
-                          </span>
+                          <span v-if="request.status === 'pending'" class="badge bg-warning">Đang chờ</span>
+                          <span v-else-if="request.status === 'approved'" class="badge bg-success">Đã chấp nhận</span>
+                          <span v-else-if="request.status === 'rejected'" class="badge bg-danger">Đã từ chối</span>
+                          <span v-else-if="request.status === 'completed'" class="badge bg-info">Đã hoàn thành</span>
+                          <span v-else class="badge bg-secondary">{{ request.status }}</span>
                         </td>
-                        <td>{{ formatDate(request.created_at) }}</td>
-                        <td>{{ formatDate(request.scheduled_time) || '-' }}</td>
                         <td>
-                          <button class="btn btn-sm btn-primary" @click="viewRequestDetail(request)">
-                            <i class="fas fa-eye"></i>
-                          </button>
+                          <div class="btn-group">
+                            <button
+                              v-if="request.status === 'pending'"
+                              class="btn btn-sm btn-success"
+                              @click="processRequest(request.id, 'approved')"
+                            >
+                              <i class="fas fa-check"></i>
+                            </button>
+                            <button
+                              v-if="request.status === 'pending'"
+                              class="btn btn-sm btn-danger"
+                              @click="processRequest(request.id, 'rejected')"
+                            >
+                              <i class="fas fa-times"></i>
+                            </button>
+                            <button
+                              v-if="request.status === 'approved'"
+                              class="btn btn-sm btn-primary"
+                              @click="completeRequest(request.id)"
+                            >
+                              <i class="fas fa-flag-checkered"></i>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     </tbody>
@@ -235,460 +209,374 @@
       </div>
     </div>
 
-    <!-- Points Management -->
-    <div v-if="mainTab === 'points'" class="row">
-      <div class="col-md-4 mb-4">
-        <div class="card">
-          <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Thêm điểm</h5>
+    <!-- Edit Kid Modal -->
+    <div v-if="showEditModal" class="modal d-block" style="background-color: rgba(0,0,0,0.5);">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">Chỉnh sửa thông tin trẻ em</h5>
+            <button type="button" class="btn-close" @click="showEditModal = false"></button>
           </div>
-          <div class="card-body">
-            <form @submit.prevent="submitPoints">
+          <div class="modal-body">
+            <form @submit.prevent="saveKidChanges">
               <div class="mb-3">
-                <label for="pointsType" class="form-label">Loại</label>
-                <select id="pointsType" class="form-select" v-model="pointsForm.type" required>
-                  <option value="reward">Thưởng</option>
-                  <option value="punishment">Phạt</option>
-                </select>
-              </div>
-
-              <div class="mb-3">
-                <label for="pointsAmount" class="form-label">Số điểm</label>
+                <label class="form-label">Tên *</label>
                 <input
-                  type="number"
+                  type="text"
                   class="form-control"
-                  id="pointsAmount"
-                  v-model="pointsForm.points"
-                  min="1"
-                  max="100"
+                  v-model="editForm.name"
                   required
-                >
-                <div class="form-text">
-                  {{ pointsForm.type === 'reward' ? 'Thưởng' : 'Trừ' }} điểm cho trẻ
-                </div>
+                />
               </div>
-
               <div class="mb-3">
-                <label for="pointsDescription" class="form-label">Mô tả</label>
-                <textarea
+                <label class="form-label">Email *</label>
+                <input
+                  type="email"
                   class="form-control"
-                  id="pointsDescription"
-                  v-model="pointsForm.description"
-                  rows="3"
+                  v-model="editForm.email"
                   required
-                ></textarea>
-                <div class="form-text">Lý do {{ pointsForm.type === 'reward' ? 'thưởng' : 'phạt' }}</div>
+                />
               </div>
-
               <div class="mb-3">
-                <label for="pointsEvidence" class="form-label">Hình ảnh bằng chứng (nếu có)</label>
+                <label class="form-label">Mật khẩu mới (để trống nếu không thay đổi)</label>
+                <input
+                  type="password"
+                  class="form-control"
+                  v-model="editForm.password"
+                  minlength="4"
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Ảnh đại diện</label>
                 <input
                   type="file"
                   class="form-control"
-                  id="pointsEvidence"
-                  @change="handleEvidenceChange"
+                  @change="handleAvatarChange"
                   accept="image/*"
-                >
-                <div class="form-text">Hỗ trợ các định dạng JPG, PNG (tối đa 2MB)</div>
+                />
               </div>
-
-              <div v-if="evidencePreview" class="mb-3 text-center">
+              <div v-if="editForm.avatarPreview" class="mb-3 text-center">
                 <img
-                  :src="evidencePreview"
+                  :src="editForm.avatarPreview"
                   alt="Preview"
-                  class="img-thumbnail"
-                  style="max-height: 150px"
-                >
-                <button
-                  type="button"
-                  class="btn btn-sm btn-danger d-block mx-auto mt-2"
-                  @click="clearEvidence"
-                >
-                  <i class="fas fa-times me-1"></i>Xóa hình ảnh
-                </button>
-              </div>
-
-              <div class="d-grid gap-2">
-                <button
-                  type="submit"
-                  class="btn"
-                  :class="pointsForm.type === 'reward' ? 'btn-success' : 'btn-danger'"
-                  :disabled="submittingPoints"
-                >
-                  <span v-if="submittingPoints" class="spinner-border spinner-border-sm me-2"></span>
-                  <i v-else :class="pointsForm.type === 'reward' ? 'fas fa-plus me-1' : 'fas fa-minus me-1'"></i>
-                  {{ pointsForm.type === 'reward' ? 'Thưởng điểm' : 'Trừ điểm' }}
-                </button>
+                  class="img-thumbnail rounded-circle"
+                  style="width: 100px; height: 100px; object-fit: cover;"
+                />
               </div>
             </form>
           </div>
-        </div>
-      </div>
-
-      <div class="col-md-8">
-        <div class="card">
-          <div class="card-header bg-info text-white">
-            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Lịch sử điểm</h5>
-          </div>
-          <div class="card-body">
-            <div v-if="loadingPoints" class="text-center py-4">
-              <div class="spinner-border text-primary" role="status"></div>
-            </div>
-            <div v-else-if="!pointsHistory.length" class="text-center py-4">
-              <i class="fas fa-history fa-3x text-muted mb-3"></i>
-              <p class="text-muted">Chưa có lịch sử điểm nào</p>
-            </div>
-            <div v-else>
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>Ngày</th>
-                      <th>Loại</th>
-                      <th>Điểm</th>
-                      <th>Mô tả</th>
-                      <th>Hình ảnh</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="record in pointsHistory" :key="record.id">
-                      <td>{{ formatDate(record.created_at) }}</td>
-                      <td>
-                        <span
-                          class="badge"
-                          :class="record.type === 'reward' ? 'bg-success' : 'bg-danger'"
-                        >
-                          {{ record.type === 'reward' ? 'Thưởng' : 'Phạt' }}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          :class="record.type === 'reward' ? 'text-success' : 'text-danger'"
-                          class="fw-bold"
-                        >
-                          {{ record.type === 'reward' ? '+' : '-' }}{{ record.points }}
-                        </span>
-                      </td>
-                      <td>{{ record.description }}</td>
-                      <td>
-                        <img
-                          v-if="record.evidence_url"
-                          :src="record.evidence_url"
-                          alt="Evidence"
-                          class="img-thumbnail cursor-pointer"
-                          style="max-width: 50px; max-height: 50px;"
-                          @click="showImageModal(record.evidence_url)"
-                        >
-                        <span v-else class="text-muted">-</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="showEditModal = false">Hủy</button>
+            <button type="button" class="btn btn-primary" @click="saveKidChanges" :disabled="updating">
+              <span v-if="updating" class="spinner-border spinner-border-sm me-2"></span>
+              <i v-else class="fas fa-save me-2"></i>
+              {{ updating ? 'Đang lưu...' : 'Lưu thay đổi' }}
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Image Modal -->
-    <div v-if="modalImage" class="modal d-block" style="background-color: rgba(0,0,0,0.8); z-index: 1060;">
+    <div v-if="showImage" class="modal d-block" style="background-color: rgba(0,0,0,0.8); z-index: 1060;">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Hình ảnh bằng chứng</h5>
-            <button type="button" class="btn-close" @click="modalImage = null"></button>
+            <button type="button" class="btn-close" @click="showImage = null"></button>
           </div>
           <div class="modal-body text-center">
-            <img :src="modalImage" alt="Evidence" class="img-fluid" style="max-height: 500px;" />
+            <img :src="showImage" alt="Evidence" class="img-fluid" style="max-height: 500px;" />
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Toast Notification -->
+    <Toast
+      :show="showToast"
+      :message="toastMessage"
+      :title="toastTitle"
+      :type="toastType"
+      @update:show="showToast = $event"
+    />
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+<script>
+import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
+import AddPoints from './AddPoints.vue';
+import Toast from '../common/Toast.vue';
 
-const props = defineProps({
-  kid: {
-    type: Object,
-    required: true
+export default {
+  components: {
+    AddPoints,
+    Toast
   },
-  selectedRequest: {
-    type: Object,
-    default: null
-  }
-});
+  props: {
+    kid: {
+      type: Object,
+      required: true
+    },
+    selectedRequest: {
+      type: Object,
+      default: null
+    }
+  },
+  emits: ['request-processed'],
+  setup(props, { emit }) {
+    const loading = ref(false);
+    const updating = ref(false);
+    const pointsHistory = ref([]);
+    const kidRequests = ref([]);
+    const localTab = ref('points');
+    const showEditModal = ref(false);
+    const showImage = ref(null);
 
-const emit = defineEmits(['request-processed']);
+    // Toast state
+    const showToast = ref(false);
+    const toastMessage = ref('');
+    const toastTitle = ref('Thông báo');
+    const toastType = ref('success');
 
-const loading = ref(true);
-const kidRequests = ref([]);
-const requestTab = ref('pending');
-const processing = ref(false);
-const showDetailModal = ref(false);
-const detailRequest = ref(null);
-const mainTab = ref('requests');
-const loadingPoints = ref(true);
-const pointsHistory = ref([]);
-const pointsForm = ref({
-  type: 'reward',
-  points: null,
-  description: '',
-  evidence: null
-});
-const submittingPoints = ref(false);
-const evidencePreview = ref(null);
-const modalImage = ref(null);
-
-const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjBGMEYwIi8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzgiIHI9IjEyIiBmaWxsPSIjQ0NDIi8+CjxwYXRoIGQ9Ik0yNSA3NUM0MCA2NSA2MCA2NSA3NSA3NVY3NUgyNVoiIGZpbGw9IiNDQ0MiLz4KPC9zdmc+';
-
-const pendingRequests = computed(() => {
-  return kidRequests.value.filter(req => req.status === 'pending');
-});
-
-const processedRequests = computed(() => {
-  return kidRequests.value.filter(req => req.status !== 'pending');
-});
-
-const formatDate = (dateString) => {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-const getTypeLabel = (type) => {
-  const types = {
-    'toy': 'Đồ chơi',
-    'food': 'Món ăn',
-    'playground': 'Khu vui chơi',
-    'activity': 'Hoạt động'
-  };
-  return types[type] || type;
-};
-
-const getTypeClass = (type) => {
-  const classes = {
-    'toy': 'bg-primary',
-    'food': 'bg-success',
-    'playground': 'bg-info',
-    'activity': 'bg-warning'
-  };
-  return classes[type] || 'bg-secondary';
-};
-
-const getStatusLabel = (status) => {
-  const statuses = {
-    'pending': 'Đang chờ',
-    'approved': 'Chấp nhận',
-    'rejected': 'Từ chối',
-    'completed': 'Hoàn thành'
-  };
-  return statuses[status] || status;
-};
-
-const getStatusClass = (status) => {
-  const classes = {
-    'pending': 'bg-warning',
-    'approved': 'bg-success',
-    'rejected': 'bg-danger',
-    'completed': 'bg-info'
-  };
-  return classes[status] || 'bg-secondary';
-};
-
-const handleAvatarError = (event) => {
-  event.target.src = defaultAvatar;
-};
-
-const fetchRequests = async () => {
-  loading.value = true;
-  try {
-    const response = await axios.get(`/api/parent/kid/${props.kid.id}/requests`);
-    kidRequests.value = response.data.requests;
-
-    // Add temporary properties for form inputs
-    kidRequests.value.forEach(request => {
-      request.scheduledTime = request.scheduled_time ? new Date(request.scheduled_time).toISOString().slice(0, 16) : '';
-      request.parentNote = request.parent_note || '';
+    const editForm = ref({
+      name: '',
+      email: '',
+      password: '',
+      avatar: null,
+      avatarPreview: null
     });
 
-  } catch (error) {
-    console.error('Error fetching kid requests:', error);
-  } finally {
-    loading.value = false;
-  }
-};
+    const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjBGMEYwIi8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzgiIHI9IjEyIiBmaWxsPSIjQ0NDIi8+CjxwYXRoIGQ9Ik0yNSA3NUM0MCA2NSA2MCA2NSA3NSA3NVY3NUgyNVoiIGZpbGw9IiNDQ0MiLz4KPC9zdmc+';
 
-const fetchPointsHistory = async () => {
-  loadingPoints.value = true;
-  try {
-    const response = await axios.get(`/api/parent/kid/${props.kid.id}/points-history`);
-    pointsHistory.value = response.data.history;
-  } catch (error) {
-    console.error('Error fetching points history:', error);
-  } finally {
-    loadingPoints.value = false;
-  }
-};
-
-const processRequest = async (request, status) => {
-  processing.value = true;
-
-  try {
-    const requestData = {
-      status: status,
-      scheduled_time: request.scheduledTime || null,
-      parent_note: request.parentNote || null
+    // Helper functions
+    const formatDate = (dateString) => {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
     };
 
-    await axios.put(`/api/parent/requests/${request.id}/process`, requestData);
+    const getTypeLabel = (type) => {
+      const types = {
+        'toy': 'Đồ chơi',
+        'food': 'Món ăn',
+        'playground': 'Khu vui chơi',
+        'activity': 'Hoạt động'
+      };
+      return types[type] || type;
+    };
 
-    // Refresh requests
-    await fetchRequests();
+    const getTypeClass = (type) => {
+      const classes = {
+        'toy': 'bg-primary',
+        'food': 'bg-success',
+        'playground': 'bg-info',
+        'activity': 'bg-warning'
+      };
+      return classes[type] || 'bg-secondary';
+    };
 
-    // Notify parent component
-    emit('request-processed');
+    const handleAvatarError = (event) => {
+      event.target.src = defaultAvatar;
+    };
 
-    alert(`Yêu cầu đã được ${status === 'approved' ? 'chấp nhận' : 'từ chối'} thành công!`);
-  } catch (error) {
-    console.error('Error processing request:', error);
-    alert('Có lỗi xảy ra khi xử lý yêu cầu. Vui lòng thử lại.');
-  } finally {
-    processing.value = false;
-  }
-};
+    // Fetch data functions
+    const fetchPointsHistory = async () => {
+      try {
+        const response = await axios.get(`/api/parent/kid/${props.kid.id}/points-history`);
+        pointsHistory.value = response.data.points_history || [];
+      } catch (error) {
+        console.error('Error fetching points history:', error);
+        showToastMessage('Không thể tải lịch sử điểm', 'Lỗi', 'danger');
+      }
+    };
 
-const submitPoints = async () => {
-  submittingPoints.value = true;
+    const fetchKidRequests = async () => {
+      try {
+        const response = await axios.get(`/api/parent/kid/${props.kid.id}/requests`);
+        kidRequests.value = response.data.requests || [];
+      } catch (error) {
+        console.error('Error fetching kid requests:', error);
+        showToastMessage('Không thể tải yêu cầu của trẻ em', 'Lỗi', 'danger');
+      }
+    };
 
-  const formData = new FormData();
-  formData.append('type', pointsForm.value.type);
-  formData.append('points', pointsForm.value.points);
-  formData.append('description', pointsForm.value.description);
-  if (pointsForm.value.evidence) {
-    formData.append('evidence', pointsForm.value.evidence);
-  }
+    const fetchData = async () => {
+      loading.value = true;
+      await Promise.all([
+        fetchPointsHistory(),
+        fetchKidRequests()
+      ]);
+      loading.value = false;
+    };
 
-  try {
-    await axios.post(`/api/parent/kid/${props.kid.id}/points`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
+    // Action methods
+    const editKid = () => {
+      editForm.value = {
+        name: props.kid.name,
+        email: props.kid.email,
+        password: '',
+        avatar: null,
+        avatarPreview: null
+      };
+      showEditModal.value = true;
+    };
+
+    const handleAvatarChange = (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Validate file type and size
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        showToastMessage('Vui lòng chọn file ảnh (JPEG, PNG, JPG, GIF)', 'Lỗi', 'danger');
+        return;
+      }
+
+      if (file.size > 2048 * 1024) { // 2MB
+        showToastMessage('File ảnh không được vượt quá 2MB', 'Lỗi', 'danger');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        editForm.value.avatarPreview = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      editForm.value.avatar = file;
+    };
+
+    const saveKidChanges = async () => {
+      updating.value = true;
+      try {
+        const formData = new FormData();
+        formData.append('name', editForm.value.name);
+        formData.append('email', editForm.value.email);
+
+        if (editForm.value.password) {
+          formData.append('password', editForm.value.password);
+        }
+
+        if (editForm.value.avatar) {
+          formData.append('avatar', editForm.value.avatar);
+        }
+
+        await axios.post(`/api/parent/kids/${props.kid.id}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'X-HTTP-Method-Override': 'PUT'
+          }
+        });
+
+        showToastMessage('Cập nhật thông tin thành công!', 'Thành công', 'success');
+        showEditModal.value = false;
+        emit('request-processed'); // Trigger parent component to refresh data
+      } catch (error) {
+        console.error('Error updating kid:', error);
+        showToastMessage('Đã xảy ra lỗi khi cập nhật thông tin', 'Lỗi', 'danger');
+      } finally {
+        updating.value = false;
+      }
+    };
+
+    const processRequest = async (requestId, status) => {
+      try {
+        await axios.put(`/api/parent/requests/${requestId}/process`, { status });
+        showToastMessage(
+          status === 'approved' ? 'Đã chấp nhận yêu cầu' : 'Đã từ chối yêu cầu',
+          'Thành công',
+          status === 'approved' ? 'success' : 'warning'
+        );
+        fetchKidRequests();
+        emit('request-processed');
+      } catch (error) {
+        console.error('Error processing request:', error);
+        showToastMessage('Đã xảy ra lỗi khi xử lý yêu cầu', 'Lỗi', 'danger');
+      }
+    };
+
+    const completeRequest = async (requestId) => {
+      try {
+        await axios.put(`/api/parent/requests/${requestId}/complete`);
+        showToastMessage('Đã hoàn thành yêu cầu', 'Thành công', 'success');
+        fetchKidRequests();
+        emit('request-processed');
+      } catch (error) {
+        console.error('Error completing request:', error);
+        showToastMessage('Đã xảy ra lỗi khi hoàn thành yêu cầu', 'Lỗi', 'danger');
+      }
+    };
+
+    const showImageModal = (url) => {
+      showImage.value = url;
+    };
+
+    const handlePointsAdded = () => {
+      fetchPointsHistory();
+      emit('request-processed'); // Update parent component data
+      showToastMessage('Đã thêm điểm thành công', 'Thành công', 'success');
+    };
+
+    const showToastMessage = (message, title = 'Thông báo', type = 'success') => {
+      toastMessage.value = message;
+      toastTitle.value = title;
+      toastType.value = type;
+      showToast.value = true;
+    };
+
+    // Watch for changes in selected request
+    watch(() => props.selectedRequest, (newVal) => {
+      if (newVal) {
+        localTab.value = 'requests';
       }
     });
 
-    // Refresh points history
-    await fetchPointsHistory();
+    // Lifecycle methods
+    onMounted(() => {
+      fetchData();
+    });
 
-    alert('Cập nhật điểm thành công!');
-
-    // Reset form
-    pointsForm.value.points = null;
-    pointsForm.value.description = '';
-    pointsForm.value.evidence = null;
-    evidencePreview.value = null;
-  } catch (error) {
-    console.error('Error submitting points:', error);
-    alert('Có lỗi xảy ra khi cập nhật điểm. Vui lòng thử lại.');
-  } finally {
-    submittingPoints.value = false;
-  }
-};
-
-const viewRequestDetail = (request) => {
-  detailRequest.value = request;
-  showDetailModal.value = true;
-};
-
-const markRequestCompleted = async (request) => {
-  try {
-    await axios.put(`/api/parent/requests/${request.id}/complete`);
-
-    // Refresh requests
-    await fetchRequests();
-
-    // Notify parent component
-    emit('request-processed');
-
-    showDetailModal.value = false;
-    alert('Yêu cầu đã được đánh dấu hoàn thành!');
-  } catch (error) {
-    console.error('Error completing request:', error);
-    alert('Có lỗi xảy ra khi hoàn thành yêu cầu. Vui lòng thử lại.');
-  }
-};
-
-const handleEvidenceChange = (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Kích thước tệp tin phải nhỏ hơn 2MB.');
-      event.target.value = null;
-      return;
-    }
-
-    // Validate file type (JPG, PNG)
-    const validTypes = ['image/jpeg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
-      alert('Chỉ chấp nhận tệp tin hình ảnh (JPG, PNG).');
-      event.target.value = null;
-      return;
-    }
-
-    pointsForm.value.evidence = file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      evidencePreview.value = e.target.result;
+    return {
+      loading,
+      updating,
+      pointsHistory,
+      kidRequests,
+      localTab,
+      showEditModal,
+      showImage,
+      editForm,
+      defaultAvatar,
+      formatDate,
+      getTypeLabel,
+      getTypeClass,
+      handleAvatarError,
+      editKid,
+      handleAvatarChange,
+      saveKidChanges,
+      processRequest,
+      completeRequest,
+      showImageModal,
+      handlePointsAdded,
+      showToast,
+      toastMessage,
+      toastTitle,
+      toastType,
+      showToastMessage
     };
-    reader.readAsDataURL(file);
   }
 };
-
-const clearEvidence = () => {
-  pointsForm.value.evidence = null;
-  evidencePreview.value = null;
-};
-
-const showImageModal = (imageUrl) => {
-  modalImage.value = imageUrl;
-};
-
-watch(() => props.selectedRequest, (newValue) => {
-  if (newValue) {
-    requestTab.value = 'pending';
-
-    // Find the matching request in the kidRequests list
-    const matchingRequest = kidRequests.value.find(r => r.id === newValue.id);
-    if (matchingRequest) {
-      // Focus on this request by scrolling to it or highlighting it
-      // This could be implemented with a ref on the element
-    }
-  }
-}, { immediate: true });
-
-onMounted(() => {
-  fetchRequests();
-  fetchPointsHistory();
-});
 </script>
 
 <style scoped>
-.card {
-  transition: transform 0.2s;
+.cursor-pointer {
+  cursor: pointer;
 }
 
-.card:hover {
-  transform: translateY(-2px);
-}
-
-.table td {
-  vertical-align: middle;
+.modal {
+  display: block;
 }
 </style>

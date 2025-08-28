@@ -1,5 +1,14 @@
 <template>
-  <div class="container-fluid parent-dashboard">
+  <div class="container-fluid parent-dashboard" style="background-color: #e3f2fd; min-height: 100vh; padding-bottom: 2rem;">
+    <!-- Toast Component -->
+    <Toast
+      :show="showToast"
+      :message="toastMessage"
+      :title="toastTitle"
+      :type="toastType"
+      @update:show="showToast = $event"
+    />
+
     <!-- Header -->
     <div class="row bg-primary text-white py-3 mb-4">
       <div class="col">
@@ -41,6 +50,11 @@
           <li class="nav-item" v-if="selectedKid">
             <a class="nav-link" :class="{ active: activeTab === 'kidDetail' }" href="#" @click.prevent="activeTab = 'kidDetail'">
               <i class="fas fa-user me-1"></i> {{ selectedKid.name }}
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" :class="{ active: activeTab === 'profile' }" href="#" @click.prevent="activeTab = 'profile'">
+              <i class="fas fa-user-cog me-1"></i> Cài đặt hồ sơ
             </a>
           </li>
         </ul>
@@ -203,6 +217,83 @@
         @request-processed="handleRequestProcessed"
       />
     </div>
+
+    <!-- Profile Settings Content -->
+    <div v-if="activeTab === 'profile'" class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-user-cog me-2"></i>Cài đặt hồ sơ</h5>
+          </div>
+          <div class="card-body">
+            <div v-if="loading" class="text-center py-4">
+              <div class="spinner-border text-primary" role="status"></div>
+            </div>
+            <div v-else>
+              <form @submit.prevent="updateProfile">
+                <div class="mb-3">
+                  <label class="form-label">Tên</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    v-model="profile.name"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Email</label>
+                  <input
+                    type="email"
+                    class="form-control"
+                    v-model="profile.email"
+                    required
+                    readonly
+                  />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Số điện thoại</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    v-model="profile.phone"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Địa chỉ</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    v-model="profile.address"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Ảnh đại diện</label>
+                  <div class="d-flex align-items-center">
+                    <img
+                      :src="profile.avatar_url || defaultAvatar"
+                      alt="Avatar"
+                      class="rounded-circle me-3"
+                      style="width: 60px; height: 60px; object-fit: cover;"
+                      @error="handleAvatarError"
+                    />
+                    <input
+                      type="file"
+                      class="form-control-file"
+                      @change="onAvatarChange"
+                    />
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save me-2"></i>Lưu thay đổi
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -211,6 +302,7 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import KidDetail from './parent/KidDetail.vue';
+import Toast from './common/Toast.vue';
 
 const router = useRouter();
 const loading = ref(true);
@@ -220,6 +312,10 @@ const requests = ref([]);
 const activeTab = ref('dashboard');
 const selectedKid = ref(null);
 const selectedRequest = ref(null);
+const showToast = ref(false);
+const toastMessage = ref('');
+const toastTitle = ref('Thông báo');
+const toastType = ref('success');
 
 const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjBGMEYwIi8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzgiIHI9IjEyIiBmaWxsPSIjQ0NDIi8+CjxwYXRoIGQ9Ik0yNSA3NUM0MCA2NSA2MCA2NSA3NSA3NVY3NUgyNVoiIGZpbGw9IiNDQ0MiLz4KPC9zdmc+';
 
@@ -346,6 +442,55 @@ const handleViewKidDetails = (request) => {
   if (request.child) {
     viewKidDetails(request.child);
     selectRequest(request);
+  }
+};
+
+const showToastMessage = (message, title = 'Thông báo', type = 'success') => {
+  toastMessage.value = message;
+  toastTitle.value = title;
+  toastType.value = type;
+  showToast.value = true;
+};
+
+const updateProfile = async () => {
+  loading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append('name', profile.value.name);
+    formData.append('phone', profile.value.phone);
+    formData.append('address', profile.value.address);
+    if (profile.value.avatar) {
+      formData.append('avatar', profile.value.avatar);
+    }
+
+    await axios.post('/api/parent/profile', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    // Refetch profile data
+    const profileResponse = await axios.get('/api/parent/profile');
+    profile.value = profileResponse.data.profile;
+
+    showToastMessage('Cập nhật hồ sơ thành công!', 'Thành công', 'success');
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    showToastMessage('Đã xảy ra lỗi khi cập nhật hồ sơ', 'Lỗi', 'danger');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const onAvatarChange = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      profile.value.avatar_url = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    profile.value.avatar = file;
   }
 };
 

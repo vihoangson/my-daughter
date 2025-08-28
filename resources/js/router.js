@@ -4,8 +4,14 @@ import Login from './components/Login.vue';
 import SimpleLogin from './components/SimpleLogin.vue';
 import ParentDashboard from './components/ParentDashboard.vue';
 import KidDashboard from './components/KidDashboard.vue';
+import Homepage from './components/Homepage.vue';
 
 const routes = [
+  {
+    path: '/',
+    name: 'Homepage',
+    component: Homepage
+  },
   {
     path: '/user-parent',
     name: 'ParentDashboard',

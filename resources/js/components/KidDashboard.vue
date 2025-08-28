@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid kid-dashboard">
+  <div class="container-fluid kid-dashboard" style="background-color: #ffebee; min-height: 100vh; padding-bottom: 2rem;">
     <!-- Toast Notification -->
     <Toast
       :show="showToast"

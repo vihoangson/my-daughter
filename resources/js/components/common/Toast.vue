@@ -1,20 +1,24 @@
 <template>
-  <div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
+  <div
+    class="toast-container position-fixed top-0 end-0 p-3"
+    style="z-index: 1100;"
+  >
     <div
-      id="liveToast"
-      class="toast"
-      :class="typeClass"
+      v-if="show"
+      class="toast show"
+      :class="toastClass"
       role="alert"
       aria-live="assertive"
-      aria-atomic="true">
-      <div class="toast-header">
+      aria-atomic="true"
+    >
+      <div class="toast-header" :class="headerClass">
         <strong class="me-auto">{{ title }}</strong>
         <button
           type="button"
           class="btn-close"
-          data-bs-dismiss="toast"
+          @click="closeToast"
           aria-label="Close"
-          @click="hide"></button>
+        ></button>
       </div>
       <div class="toast-body">
         {{ message }}
@@ -24,15 +28,16 @@
 </template>
 
 <script>
-import { ref, onMounted, watchEffect, computed } from 'vue';
-import { Toast } from 'bootstrap';
-
 export default {
-  name: 'ToastMessage',
+  name: 'Toast',
   props: {
+    show: {
+      type: Boolean,
+      default: false
+    },
     message: {
       type: String,
-      required: true
+      default: ''
     },
     title: {
       type: String,
@@ -43,61 +48,43 @@ export default {
       default: 'success',
       validator: (value) => ['success', 'danger', 'warning', 'info'].includes(value)
     },
-    show: {
-      type: Boolean,
-      default: false
-    },
     duration: {
       type: Number,
       default: 3000
     }
   },
-  setup(props, { emit }) {
-    const toastInstance = ref(null);
-
-    const hide = () => {
-      if (toastInstance.value) {
-        toastInstance.value.hide();
-      }
-      emit('update:show', false);
-    };
-
-    const typeClass = computed(() => {
+  emits: ['update:show'],
+  computed: {
+    toastClass() {
       return {
-        'bg-success text-white': props.type === 'success',
-        'bg-danger text-white': props.type === 'danger',
-        'bg-warning': props.type === 'warning',
-        'bg-info': props.type === 'info'
+        'border-success': this.type === 'success',
+        'border-danger': this.type === 'danger',
+        'border-warning': this.type === 'warning',
+        'border-info': this.type === 'info'
       };
-    });
-
-    onMounted(() => {
-      const toastEl = document.getElementById('liveToast');
-      toastInstance.value = new Toast(toastEl, {
-        delay: props.duration
-      });
-
-      toastEl.addEventListener('hidden.bs.toast', () => {
-        emit('update:show', false);
-      });
-    });
-
-    watchEffect(() => {
-      if (props.show && toastInstance.value) {
-        toastInstance.value.show();
+    },
+    headerClass() {
+      return {
+        'text-bg-success': this.type === 'success',
+        'text-bg-danger': this.type === 'danger',
+        'text-bg-warning': this.type === 'warning',
+        'text-bg-info': this.type === 'info'
+      };
+    }
+  },
+  watch: {
+    show(newVal) {
+      if (newVal && this.duration > 0) {
+        setTimeout(() => {
+          this.closeToast();
+        }, this.duration);
       }
-    });
-
-    return {
-      hide,
-      typeClass
-    };
+    }
+  },
+  methods: {
+    closeToast() {
+      this.$emit('update:show', false);
+    }
   }
-}
+};
 </script>
-
-<style scoped>
-.toast {
-  min-width: 250px;
-}
-</style>

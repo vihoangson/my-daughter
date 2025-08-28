@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function(){
     // Parent routes
     Route::middleware('parent')->prefix('parent')->group(function() {
         Route::get('profile', [ParentChildController::class, 'profile']);
+        Route::post('profile', [ParentChildController::class, 'updateProfile']); // Add POST route for profile updates
         Route::get('kids', [ParentChildController::class, 'currentKids']);
         Route::post('kids', [ParentChildController::class, 'storeKid']);
         Route::put('kids/{kid}', [ParentChildController::class, 'updateKid']);
