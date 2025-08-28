@@ -84,6 +84,23 @@ deploy_to_remote() {
     return 0
 }
 
+# Function to run build on remote server
+run_build_on_remote() {
+    print_message "Running build process on remote server..."
+
+    # Execute SSH command to run npm build
+    ssh ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_PATH} && npm run build"
+
+    if [ $? -eq 0 ]; then
+        print_message "Build process completed successfully."
+    else
+        print_error "Build process failed."
+        return 1
+    fi
+
+    return 0
+}
+
 # Main script execution
 main() {
     print_message "Starting deployment process..."
@@ -101,6 +118,14 @@ main() {
         print_message "Deployment completed successfully."
     else
         print_error "Deployment failed."
+        exit 1
+    fi
+
+    # Run build process on remote server
+    if run_build_on_remote; then
+        print_message "Build process completed successfully."
+    else
+        print_error "Build process failed."
         exit 1
     fi
 
