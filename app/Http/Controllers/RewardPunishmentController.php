@@ -93,4 +93,63 @@ class RewardPunishmentController extends Controller
     {
         return response()->json(UserKid::all());
     }
+
+    /**
+     * Get points history for a specific kid (for parent view)
+     */
+    public function kidPointsHistory(Request $request, $kidId)
+    {
+        // Verify that the kid belongs to the parent
+        $parent = UserParents::find($request->user()->id);
+        if (!$parent || !$parent->kids()->where('users.id', $kidId)->exists()) {
+            return response()->json(['message' => 'Forbidden: kid not managed by parent'], 403);
+        }
+
+        // Get the points history
+        $history = RewardPunishment::where('child_id', $kidId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json(['history' => $history]);
+    }
+
+    /**
+     * Add points (reward or punishment) for a specific kid (parent functionality)
+     */
+    public function addPoints(Request $request, $kidId)
+    {
+        // Validate input
+        $data = $request->validate([
+            'points' => 'required|integer|min:1|max:100',
+            'type' => 'required|in:reward,punishment',
+            'description' => 'required|string',
+            'evidence' => 'nullable|file|mimes:jpg,jpeg,png|max:2048'
+        ]);
+
+        // Verify that the kid belongs to the parent
+        $parent = UserParents::find($request->user()->id);
+        if (!$parent || !$parent->kids()->where('users.id', $kidId)->exists()) {
+            return response()->json(['message' => 'Forbidden: kid not managed by parent'], 403);
+        }
+
+        // Handle evidence file upload if provided
+        $evidencePath = null;
+        if ($request->hasFile('evidence')) {
+            $evidencePath = $request->file('evidence')->store('evidence', 's3_public');
+        }
+
+        // Create the reward/punishment record
+        $record = RewardPunishment::create([
+            'child_id' => $kidId,
+            'points' => $data['points'],
+            'type' => $data['type'],
+            'description' => $data['description'],
+            'evidence_path' => $evidencePath,
+        ]);
+
+        return response()->json([
+            'message' => 'Points added successfully',
+            'record' => $record
+        ], 201);
+    }
 }

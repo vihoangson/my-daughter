@@ -71,8 +71,26 @@
       </div>
     </div>
 
+    <!-- Tabs for different sections -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link" :class="{ active: mainTab === 'requests' }" href="#" @click.prevent="mainTab = 'requests'">
+              <i class="fas fa-bell me-1"></i>Yêu cầu
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" :class="{ active: mainTab === 'points' }" href="#" @click.prevent="mainTab = 'points'">
+              <i class="fas fa-star me-1"></i>Quản lý điểm
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <!-- Requests Management -->
-    <div class="row">
+    <div v-if="mainTab === 'requests'" class="row">
       <div class="col-12">
         <div class="card">
           <div class="card-header bg-info text-white">
@@ -217,70 +235,172 @@
       </div>
     </div>
 
-    <!-- Request Detail Modal -->
-    <div v-if="showDetailModal" class="modal d-block" style="background-color: rgba(0,0,0,0.5);">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Chi tiết yêu cầu</h5>
-            <button type="button" class="btn-close" @click="showDetailModal = false"></button>
+    <!-- Points Management -->
+    <div v-if="mainTab === 'points'" class="row">
+      <div class="col-md-4 mb-4">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Thêm điểm</h5>
           </div>
-          <div class="modal-body">
-            <div v-if="detailRequest">
+          <div class="card-body">
+            <form @submit.prevent="submitPoints">
               <div class="mb-3">
-                <h5 class="mb-1">{{ detailRequest.title }}</h5>
-                <span
-                  :class="getTypeClass(detailRequest.type)"
-                  class="badge me-2">
-                  {{ getTypeLabel(detailRequest.type) }}
-                </span>
-                <span
-                  :class="getStatusClass(detailRequest.status)"
-                  class="badge">
-                  {{ getStatusLabel(detailRequest.status) }}
-                </span>
+                <label for="pointsType" class="form-label">Loại</label>
+                <select id="pointsType" class="form-select" v-model="pointsForm.type" required>
+                  <option value="reward">Thưởng</option>
+                  <option value="punishment">Phạt</option>
+                </select>
               </div>
 
               <div class="mb-3">
-                <strong>Mô tả:</strong>
-                <p class="mb-0">{{ detailRequest.description || 'Không có mô tả' }}</p>
-              </div>
-
-              <div class="mb-3">
-                <strong>Ngày yêu cầu:</strong>
-                <p class="mb-0">{{ formatDate(detailRequest.created_at) }}</p>
-              </div>
-
-              <div v-if="detailRequest.status !== 'pending'" class="mb-3">
-                <strong>Thời gian thực hiện:</strong>
-                <p class="mb-0">
-                  <span v-if="detailRequest.scheduled_time">
-                    {{ formatDate(detailRequest.scheduled_time) }}
-                  </span>
-                  <span v-else class="text-muted">Chưa xác định</span>
-                </p>
-              </div>
-
-              <div v-if="detailRequest.parent_note" class="mb-3">
-                <strong>Ghi chú từ phụ huynh:</strong>
-                <p class="mb-0">{{ detailRequest.parent_note }}</p>
-              </div>
-
-              <div v-if="detailRequest.status === 'approved' || detailRequest.status === 'completed'">
-                <div class="d-grid">
-                  <button
-                    v-if="detailRequest.status === 'approved'"
-                    class="btn btn-success"
-                    @click="markRequestCompleted(detailRequest)"
-                  >
-                    <i class="fas fa-check-double me-1"></i>Đánh dấu đã hoàn thành
-                  </button>
+                <label for="pointsAmount" class="form-label">Số điểm</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="pointsAmount"
+                  v-model="pointsForm.points"
+                  min="1"
+                  max="100"
+                  required
+                >
+                <div class="form-text">
+                  {{ pointsForm.type === 'reward' ? 'Thưởng' : 'Trừ' }} điểm cho trẻ
                 </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="pointsDescription" class="form-label">Mô tả</label>
+                <textarea
+                  class="form-control"
+                  id="pointsDescription"
+                  v-model="pointsForm.description"
+                  rows="3"
+                  required
+                ></textarea>
+                <div class="form-text">Lý do {{ pointsForm.type === 'reward' ? 'thưởng' : 'phạt' }}</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="pointsEvidence" class="form-label">Hình ảnh bằng chứng (nếu có)</label>
+                <input
+                  type="file"
+                  class="form-control"
+                  id="pointsEvidence"
+                  @change="handleEvidenceChange"
+                  accept="image/*"
+                >
+                <div class="form-text">Hỗ trợ các định dạng JPG, PNG (tối đa 2MB)</div>
+              </div>
+
+              <div v-if="evidencePreview" class="mb-3 text-center">
+                <img
+                  :src="evidencePreview"
+                  alt="Preview"
+                  class="img-thumbnail"
+                  style="max-height: 150px"
+                >
+                <button
+                  type="button"
+                  class="btn btn-sm btn-danger d-block mx-auto mt-2"
+                  @click="clearEvidence"
+                >
+                  <i class="fas fa-times me-1"></i>Xóa hình ảnh
+                </button>
+              </div>
+
+              <div class="d-grid gap-2">
+                <button
+                  type="submit"
+                  class="btn"
+                  :class="pointsForm.type === 'reward' ? 'btn-success' : 'btn-danger'"
+                  :disabled="submittingPoints"
+                >
+                  <span v-if="submittingPoints" class="spinner-border spinner-border-sm me-2"></span>
+                  <i v-else :class="pointsForm.type === 'reward' ? 'fas fa-plus me-1' : 'fas fa-minus me-1'"></i>
+                  {{ pointsForm.type === 'reward' ? 'Thưởng điểm' : 'Trừ điểm' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Lịch sử điểm</h5>
+          </div>
+          <div class="card-body">
+            <div v-if="loadingPoints" class="text-center py-4">
+              <div class="spinner-border text-primary" role="status"></div>
+            </div>
+            <div v-else-if="!pointsHistory.length" class="text-center py-4">
+              <i class="fas fa-history fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Chưa có lịch sử điểm nào</p>
+            </div>
+            <div v-else>
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Ngày</th>
+                      <th>Loại</th>
+                      <th>Điểm</th>
+                      <th>Mô tả</th>
+                      <th>Hình ảnh</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="record in pointsHistory" :key="record.id">
+                      <td>{{ formatDate(record.created_at) }}</td>
+                      <td>
+                        <span
+                          class="badge"
+                          :class="record.type === 'reward' ? 'bg-success' : 'bg-danger'"
+                        >
+                          {{ record.type === 'reward' ? 'Thưởng' : 'Phạt' }}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          :class="record.type === 'reward' ? 'text-success' : 'text-danger'"
+                          class="fw-bold"
+                        >
+                          {{ record.type === 'reward' ? '+' : '-' }}{{ record.points }}
+                        </span>
+                      </td>
+                      <td>{{ record.description }}</td>
+                      <td>
+                        <img
+                          v-if="record.evidence_url"
+                          :src="record.evidence_url"
+                          alt="Evidence"
+                          class="img-thumbnail cursor-pointer"
+                          style="max-width: 50px; max-height: 50px;"
+                          @click="showImageModal(record.evidence_url)"
+                        >
+                        <span v-else class="text-muted">-</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="showDetailModal = false">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div v-if="modalImage" class="modal d-block" style="background-color: rgba(0,0,0,0.8); z-index: 1060;">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Hình ảnh bằng chứng</h5>
+            <button type="button" class="btn-close" @click="modalImage = null"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img :src="modalImage" alt="Evidence" class="img-fluid" style="max-height: 500px;" />
           </div>
         </div>
       </div>
@@ -311,6 +431,18 @@ const requestTab = ref('pending');
 const processing = ref(false);
 const showDetailModal = ref(false);
 const detailRequest = ref(null);
+const mainTab = ref('requests');
+const loadingPoints = ref(true);
+const pointsHistory = ref([]);
+const pointsForm = ref({
+  type: 'reward',
+  points: null,
+  description: '',
+  evidence: null
+});
+const submittingPoints = ref(false);
+const evidencePreview = ref(null);
+const modalImage = ref(null);
 
 const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjBGMEYwIi8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzgiIHI9IjEyIiBmaWxsPSIjQ0NDIi8+CjxwYXRoIGQ9Ik0yNSA3NUM0MCA2NSA2MCA2NSA3NSA3NVY3NUgyNVoiIGZpbGw9IiNDQ0MiLz4KPC9zdmc+';
 
@@ -394,6 +526,18 @@ const fetchRequests = async () => {
   }
 };
 
+const fetchPointsHistory = async () => {
+  loadingPoints.value = true;
+  try {
+    const response = await axios.get(`/api/parent/kid/${props.kid.id}/points-history`);
+    pointsHistory.value = response.data.history;
+  } catch (error) {
+    console.error('Error fetching points history:', error);
+  } finally {
+    loadingPoints.value = false;
+  }
+};
+
 const processRequest = async (request, status) => {
   processing.value = true;
 
@@ -421,6 +565,42 @@ const processRequest = async (request, status) => {
   }
 };
 
+const submitPoints = async () => {
+  submittingPoints.value = true;
+
+  const formData = new FormData();
+  formData.append('type', pointsForm.value.type);
+  formData.append('points', pointsForm.value.points);
+  formData.append('description', pointsForm.value.description);
+  if (pointsForm.value.evidence) {
+    formData.append('evidence', pointsForm.value.evidence);
+  }
+
+  try {
+    await axios.post(`/api/parent/kid/${props.kid.id}/points`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    // Refresh points history
+    await fetchPointsHistory();
+
+    alert('Cập nhật điểm thành công!');
+
+    // Reset form
+    pointsForm.value.points = null;
+    pointsForm.value.description = '';
+    pointsForm.value.evidence = null;
+    evidencePreview.value = null;
+  } catch (error) {
+    console.error('Error submitting points:', error);
+    alert('Có lỗi xảy ra khi cập nhật điểm. Vui lòng thử lại.');
+  } finally {
+    submittingPoints.value = false;
+  }
+};
+
 const viewRequestDetail = (request) => {
   detailRequest.value = request;
   showDetailModal.value = true;
@@ -444,6 +624,42 @@ const markRequestCompleted = async (request) => {
   }
 };
 
+const handleEvidenceChange = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Kích thước tệp tin phải nhỏ hơn 2MB.');
+      event.target.value = null;
+      return;
+    }
+
+    // Validate file type (JPG, PNG)
+    const validTypes = ['image/jpeg', 'image/png'];
+    if (!validTypes.includes(file.type)) {
+      alert('Chỉ chấp nhận tệp tin hình ảnh (JPG, PNG).');
+      event.target.value = null;
+      return;
+    }
+
+    pointsForm.value.evidence = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      evidencePreview.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const clearEvidence = () => {
+  pointsForm.value.evidence = null;
+  evidencePreview.value = null;
+};
+
+const showImageModal = (imageUrl) => {
+  modalImage.value = imageUrl;
+};
+
 watch(() => props.selectedRequest, (newValue) => {
   if (newValue) {
     requestTab.value = 'pending';
@@ -459,6 +675,7 @@ watch(() => props.selectedRequest, (newValue) => {
 
 onMounted(() => {
   fetchRequests();
+  fetchPointsHistory();
 });
 </script>
 

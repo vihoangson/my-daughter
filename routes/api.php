@@ -43,6 +43,10 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('kid/{kid}/requests', [KidRequestController::class, 'kidRequests']);
         Route::put('requests/{id}/process', [KidRequestController::class, 'processRequest']);
         Route::put('requests/{id}/complete', [KidRequestController::class, 'completeRequest']);
+
+        // Points management routes
+        Route::get('kid/{kid}/points-history', [RewardPunishmentController::class, 'kidPointsHistory']);
+        Route::post('kid/{kid}/points', [RewardPunishmentController::class, 'addPoints']);
     });
 
     // Kid routes
