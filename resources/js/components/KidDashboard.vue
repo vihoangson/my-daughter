@@ -470,7 +470,7 @@ import axios from 'axios';
 import { useRouter } from 'vue-router';
 import RequestForm from './kid/RequestForm.vue';
 import RequestHistory from './kid/RequestHistory.vue';
-import Toast from './Toast.vue'; // Import Toast component
+import Toast from './common/Toast.vue'; // Fix import path to Toast component
 
 const router = useRouter();
 const loading = ref(true);
