@@ -1,5 +1,14 @@
 <template>
   <div class="container-fluid">
+    <!-- Toast Notification -->
+    <Toast
+      :show="showToast"
+      :message="toastMessage"
+      :title="toastTitle"
+      :type="toastType"
+      @update:show="showToast = $event"
+    />
+
     <!-- Header -->
     <div class="row bg-primary text-white py-3 mb-4">
       <div class="col">
@@ -461,6 +470,7 @@ import axios from 'axios';
 import { useRouter } from 'vue-router';
 import RequestForm from './kid/RequestForm.vue';
 import RequestHistory from './kid/RequestHistory.vue';
+import Toast from './Toast.vue'; // Import Toast component
 
 const router = useRouter();
 const loading = ref(true);
@@ -475,6 +485,12 @@ const profileLoading = ref(false);
 const updating = ref(false);
 const changingPassword = ref(false);
 const errors = ref({});
+
+// Toast state
+const showToast = ref(false);
+const toastMessage = ref('');
+const toastTitle = ref('');
+const toastType = ref('success');
 
 // Profile form data
 const profileForm = ref({
@@ -611,7 +627,11 @@ const updateProfile = async () => {
       window.currentUser.avatar_url = response.data.avatar_url;
     }
 
-    alert('Cập nhật hồ sơ thành công!');
+    // Show success toast
+    toastTitle.value = 'Thành công';
+    toastMessage.value = 'Cập nhật hồ sơ thành công!';
+    toastType.value = 'success';
+    showToast.value = true;
 
     // Reset form and preview
     profileForm.value.avatar = null;
@@ -631,9 +651,17 @@ const updateProfile = async () => {
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors;
     } else if (error.response?.data?.message) {
-      alert(error.response.data.message);
+      // Show error toast
+      toastTitle.value = 'Lỗi';
+      toastMessage.value = error.response.data.message;
+      toastType.value = 'danger';
+      showToast.value = true;
     } else {
-      alert('Đã xảy ra lỗi. Vui lòng thử lại sau.');
+      // Show error toast
+      toastTitle.value = 'Lỗi';
+      toastMessage.value = 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
+      toastType.value = 'danger';
+      showToast.value = true;
     }
   } finally {
     updating.value = false;
@@ -651,7 +679,11 @@ const changePassword = async () => {
       new_password_confirmation: passwordForm.value.new_password_confirmation
     });
 
-    alert('Đổi mật khẩu thành công!');
+    // Show success toast
+    toastTitle.value = 'Thành công';
+    toastMessage.value = 'Đổi mật khẩu thành công!';
+    toastType.value = 'success';
+    showToast.value = true;
 
     // Reset password form
     passwordForm.value.current_password = '';
@@ -663,9 +695,17 @@ const changePassword = async () => {
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors;
     } else if (error.response?.data?.message) {
-      alert(error.response.data.message);
+      // Show error toast
+      toastTitle.value = 'Lỗi';
+      toastMessage.value = error.response.data.message;
+      toastType.value = 'danger';
+      showToast.value = true;
     } else {
-      alert('Đã xảy ra lỗi. Vui lòng thử lại sau.');
+      // Show error toast
+      toastTitle.value = 'Lỗi';
+      toastMessage.value = 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
+      toastType.value = 'danger';
+      showToast.value = true;
     }
   } finally {
     changingPassword.value = false;
@@ -683,14 +723,24 @@ const handleAvatarChange = async (event) => {
   // Validate file type and size
   const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
   if (!validTypes.includes(file.type)) {
-    alert('Vui lòng chọn file ảnh (JPEG, PNG, JPG, GIF)');
+    // Show error toast instead of alert
+    toastTitle.value = 'Lỗi';
+    toastMessage.value = 'Vui lòng chọn file ảnh (JPEG, PNG, JPG, GIF)';
+    toastType.value = 'danger';
+    showToast.value = true;
+
     event.target.value = '';
     avatarPreview.value = null;
     return;
   }
 
   if (file.size > 2048 * 1024) { // 2MB
-    alert('File ảnh không được vượt quá 2MB');
+    // Show error toast instead of alert
+    toastTitle.value = 'Lỗi';
+    toastMessage.value = 'File ảnh không được vượt quá 2MB';
+    toastType.value = 'danger';
+    showToast.value = true;
+
     event.target.value = '';
     avatarPreview.value = null;
     return;
@@ -702,7 +752,12 @@ const handleAvatarChange = async (event) => {
     avatarPreview.value = e.target.result;
   };
   reader.onerror = () => {
-    alert('Không thể đọc file ảnh. Vui lòng thử lại.');
+    // Show error toast instead of alert
+    toastTitle.value = 'Lỗi';
+    toastMessage.value = 'Không thể đọc file ảnh. Vui lòng thử lại.';
+    toastType.value = 'danger';
+    showToast.value = true;
+
     event.target.value = '';
     avatarPreview.value = null;
     return;
@@ -745,8 +800,11 @@ const uploadAvatarImmediately = async (file) => {
       window.currentUser.avatar_url = response.data.avatar_url;
     }
 
-    // Show success message
-    alert('Cập nhật ảnh đại diện thành công!');
+    // Show success toast
+    toastTitle.value = 'Thành công';
+    toastMessage.value = 'Cập nhật ảnh đại diện thành công!';
+    toastType.value = 'success';
+    showToast.value = true;
 
     // Clear preview after successful upload
     avatarPreview.value = null;
@@ -762,7 +820,12 @@ const uploadAvatarImmediately = async (file) => {
 
   } catch (error) {
     console.error('Error uploading avatar:', error);
-    alert('Đã xảy ra lỗi khi tải ảnh đại diện lên. Vui lòng thử lại.');
+
+    // Show error toast
+    toastTitle.value = 'Lỗi';
+    toastMessage.value = 'Đã xảy ra lỗi khi tải ảnh đại diện lên. Vui lòng thử lại.';
+    toastType.value = 'danger';
+    showToast.value = true;
   } finally {
     updating.value = false;
   }
