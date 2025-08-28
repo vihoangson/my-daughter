@@ -38,6 +38,11 @@
               <i class="fas fa-paper-plane me-1"></i> Yêu cầu
             </a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" :class="{ active: activeTab === 'profile' }" href="#" @click.prevent="activeTab = 'profile'">
+              <i class="fas fa-user-cog me-1"></i> Cài đặt hồ sơ
+            </a>
+          </li>
         </ul>
       </div>
     </div>
@@ -270,6 +275,163 @@
       </div>
     </div>
 
+    <!-- Profile Settings Tab Content -->
+    <div v-if="activeTab === 'profile'">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card mb-4">
+            <div class="card-header bg-warning text-white">
+              <h5 class="mb-0"><i class="fas fa-user-cog me-2"></i>Cài đặt hồ sơ</h5>
+            </div>
+            <div class="card-body">
+              <div v-if="profileLoading || loading" class="text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">Đang tải thông tin...</p>
+              </div>
+              <div v-else-if="!profile" class="text-center text-danger">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <p>Không thể tải thông tin hồ sơ</p>
+                <button class="btn btn-primary" @click="fetchData">Thử lại</button>
+              </div>
+              <div v-else>
+                <!-- Avatar Section -->
+                <div class="text-center mb-4">
+                  <div class="position-relative d-inline-block">
+                    <img
+                      :src="avatarPreview || profile.avatar_url || defaultAvatar"
+                      alt="Avatar"
+                      class="rounded-circle border"
+                      style="width: 120px; height: 120px; object-fit: cover;"
+                      @error="handleAvatarError"
+                    />
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-sm position-absolute"
+                      style="bottom: 0; right: 0; border-radius: 50%; width: 35px; height: 35px;"
+                      @click="$refs.avatarInput.click()"
+                    >
+                      <i class="fas fa-camera"></i>
+                    </button>
+                    <input
+                      ref="avatarInput"
+                      type="file"
+                      class="d-none"
+                      accept="image/*"
+                      @change="handleAvatarChange"
+                    />
+                  </div>
+                  <p class="small text-muted mt-2">Nhấp vào nút camera để thay đổi ảnh đại diện</p>
+                  <div v-if="avatarPreview" class="mt-2">
+                    <small class="text-success">
+                      <i class="fas fa-check-circle me-1"></i>
+                      Ảnh mới đã được chọn - nhấn "Lưu thay đổi" để cập nhật
+                    </small>
+                  </div>
+                </div>
+
+                <form @submit.prevent="updateProfile">
+                  <div class="mb-3">
+                    <label class="form-label">Tên hiển thị *</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      v-model="profileForm.name"
+                      required
+                      :class="{ 'is-invalid': errors.name }"
+                    />
+                    <div v-if="errors.name" class="invalid-feedback">{{ errors.name[0] }}</div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label">Email (chỉ đọc)</label>
+                    <input
+                      type="email"
+                      class="form-control"
+                      :value="profile.email"
+                      readonly
+                      disabled
+                    />
+                    <div class="form-text">Email không thể thay đổi</div>
+                  </div>
+
+                  <div class="d-grid">
+                    <button type="submit" class="btn btn-primary" :disabled="updating">
+                      <span v-if="updating" class="spinner-border spinner-border-sm me-2"></span>
+                      <i v-else class="fas fa-save me-2"></i>
+                      {{ updating ? 'Đang lưu...' : 'Lưu thay đổi' }}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header bg-danger text-white">
+              <h5 class="mb-0"><i class="fas fa-key me-2"></i>Đổi mật khẩu</h5>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="changePassword">
+                <div class="mb-3">
+                  <label class="form-label">Mật khẩu hiện tại *</label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    v-model="passwordForm.current_password"
+                    required
+                    :class="{ 'is-invalid': errors.current_password }"
+                  />
+                  <div v-if="errors.current_password" class="invalid-feedback">{{ errors.current_password[0] }}</div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Mật khẩu mới *</label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    v-model="passwordForm.new_password"
+                    required
+                    minlength="4"
+                    :class="{ 'is-invalid': errors.new_password }"
+                  />
+                  <div v-if="errors.new_password" class="invalid-feedback">{{ errors.new_password[0] }}</div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Xác nhận mật khẩu mới *</label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    v-model="passwordForm.new_password_confirmation"
+                    required
+                    minlength="4"
+                    :class="{ 'is-invalid': !passwordsMatch && passwordForm.new_password_confirmation }"
+                  />
+                  <div v-if="!passwordsMatch && passwordForm.new_password_confirmation" class="invalid-feedback">
+                    Mật khẩu xác nhận không khớp
+                  </div>
+                </div>
+
+                <div class="d-grid">
+                  <button
+                    type="submit"
+                    class="btn btn-danger"
+                    :disabled="changingPassword || !passwordsMatch"
+                  >
+                    <span v-if="changingPassword" class="spinner-border spinner-border-sm me-2"></span>
+                    <i v-else class="fas fa-key me-2"></i>
+                    {{ changingPassword ? 'Đang đổi...' : 'Đổi mật khẩu' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Image Modal -->
     <div v-if="showImage" class="modal d-block" style="background-color: rgba(0,0,0,0.8); z-index: 1060;">
       <div class="modal-dialog modal-dialog-centered">
@@ -288,7 +450,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import RequestForm from './kid/RequestForm.vue';
@@ -303,6 +465,31 @@ const showAllHistory = ref(false);
 const showImage = ref(null);
 const activeTab = ref('dashboard');
 const refreshTrigger = ref(false);
+const profileLoading = ref(false);
+const updating = ref(false);
+const changingPassword = ref(false);
+const errors = ref({});
+
+// Profile form data
+const profileForm = ref({
+  name: '',
+  avatar: null
+});
+
+// Add preview URL for avatar
+const avatarPreview = ref(null);
+
+// Password form data
+const passwordForm = ref({
+  current_password: '',
+  new_password: '',
+  new_password_confirmation: ''
+});
+
+// Computed for password validation
+const passwordsMatch = computed(() => {
+  return passwordForm.value.new_password === passwordForm.value.new_password_confirmation;
+});
 
 const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjBGMEYwIi8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzgiIHI9IjEyIiBmaWxsPSIjQ0NDIi8+CjxwYXRoIGQ9Ik0yNSA3NUM0MCA2NSA2MCA2NSA3NSA3NVY3NUgyNVoiIGZpbGw9IiNDQ0MiLz4KPC9zdmc+';
 
@@ -352,6 +539,9 @@ const fetchData = async () => {
     profileData.value = profileResponse.data;
     profile.value = profileData.value.profile;
     dashboardData.value = dashboardResponse.data;
+
+    // Initialize profile form with current data
+    profileForm.value.name = profile.value.name;
   } catch (error) {
     console.error('Error fetching data:', error);
     if (error.response?.status === 401 || error.response?.status === 403) {
@@ -364,6 +554,140 @@ const fetchData = async () => {
 
 const handleRequestSubmitted = () => {
   refreshTrigger.value = !refreshTrigger.value;
+};
+
+const updateProfile = async () => {
+  updating.value = true;
+  errors.value = {};
+
+  try {
+    let response;
+
+    if (profileForm.value.avatar) {
+      // Use POST with FormData when uploading file
+      const formData = new FormData();
+      formData.append('name', profileForm.value.name);
+      formData.append('avatar', profileForm.value.avatar);
+
+      response = await axios.post('/api/kid/profile/update', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+    } else {
+      // Use PUT with JSON when only updating name
+      response = await axios.put('/api/kid/profile', {
+        name: profileForm.value.name
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    // Update profile data completely
+    profile.value = response.data.profile;
+    profile.value.avatar_url = response.data.avatar_url;
+
+    // Update profileData as well
+    profileData.value.profile = profile.value;
+    profileData.value.avatar_url = response.data.avatar_url;
+
+    // Update window.currentUser for header and other components
+    if (window.currentUser) {
+      window.currentUser.name = profile.value.name;
+      window.currentUser.avatar = profile.value.avatar;
+      window.currentUser.avatar_url = response.data.avatar_url;
+    }
+
+    alert('Cập nhật hồ sơ thành công!');
+
+    // Reset form and preview
+    profileForm.value.avatar = null;
+    avatarPreview.value = null;
+
+    // Clear file input
+    const avatarInput = document.querySelector('input[type="file"]');
+    if (avatarInput) {
+      avatarInput.value = '';
+    }
+
+    // Force re-render by updating key or refreshing data
+    await fetchData();
+
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    if (error.response?.data?.errors) {
+      errors.value = error.response.data.errors;
+    } else if (error.response?.data?.message) {
+      alert(error.response.data.message);
+    } else {
+      alert('Đã xảy ra lỗi. Vui lòng thử lại sau.');
+    }
+  } finally {
+    updating.value = false;
+  }
+};
+
+const changePassword = async () => {
+  changingPassword.value = true;
+  errors.value = {};
+
+  try {
+    await axios.put('/api/kid/change-password', {
+      current_password: passwordForm.value.current_password,
+      new_password: passwordForm.value.new_password,
+      new_password_confirmation: passwordForm.value.new_password_confirmation
+    });
+
+    alert('Đổi mật khẩu thành công!');
+
+    // Reset password form
+    passwordForm.value.current_password = '';
+    passwordForm.value.new_password = '';
+    passwordForm.value.new_password_confirmation = '';
+
+  } catch (error) {
+    console.error('Error changing password:', error);
+    if (error.response?.data?.errors) {
+      errors.value = error.response.data.errors;
+    } else if (error.response?.data?.message) {
+      alert(error.response.data.message);
+    } else {
+      alert('Đã xảy ra lỗi. Vui lòng thử lại sau.');
+    }
+  } finally {
+    changingPassword.value = false;
+  }
+};
+
+const handleAvatarChange = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    // Validate file type and size
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      alert('Vui lòng chọn file ảnh (JPEG, PNG, JPG, GIF)');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 2048 * 1024) { // 2MB
+      alert('File ảnh không được vượt quá 2MB');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      // Update preview immediately
+      avatarPreview.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    // Store the file for submission
+    profileForm.value.avatar = file;
+  }
 };
 
 onMounted(() => {

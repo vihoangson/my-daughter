@@ -49,6 +49,9 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::middleware('kid')->prefix('kid')->group(function() {
         Route::get('profile', [KidController::class, 'profile']);
         Route::get('dashboard', [KidController::class, 'dashboard']);
+        Route::put('profile', [KidController::class, 'updateProfile']);
+        Route::post('profile/update', [KidController::class, 'updateProfile']); // Add POST route for file upload
+        Route::put('change-password', [KidController::class, 'changePassword']);
 
         // Kid request routes
         Route::get('requests', [KidRequestController::class, 'index']);
