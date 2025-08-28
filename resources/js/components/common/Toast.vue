@@ -24,7 +24,7 @@
 </template>
 
 <script>
-import { ref, onMounted, watchEffect } from 'vue';
+import { ref, onMounted, watchEffect, computed } from 'vue';
 import { Toast } from 'bootstrap';
 
 export default {

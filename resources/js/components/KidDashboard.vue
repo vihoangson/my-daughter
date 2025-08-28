@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid kid-dashboard">
     <!-- Toast Notification -->
     <Toast
       :show="showToast"
@@ -838,4 +838,13 @@ onMounted(() => {
 
 <style scoped>
 /* Add any component-specific styles here */
+.kid-dashboard {
+  background-color: #ffe6f0; /* Light pink background */
+  min-height: 100vh;
+  padding-bottom: 2rem;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid">
+  <div class="container-fluid parent-dashboard">
     <!-- Header -->
     <div class="row bg-primary text-white py-3 mb-4">
       <div class="col">
@@ -369,5 +369,11 @@ onMounted(() => {
 
 .table td {
   vertical-align: middle;
+}
+
+.parent-dashboard {
+  background-color: #e6f2ff; /* Light blue background */
+  min-height: 100vh;
+  padding-bottom: 2rem;
 }
 </style>
