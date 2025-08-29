@@ -44,7 +44,7 @@
 
     <div v-if="gameStarted && !gameOver" class="piano-wrapper">
       <div class="target-note-display mb-3">
-        <span>Nốt cần bấm:</span>
+        <span>Nốt c���n bấm:</span>
         <strong class="ms-2 display-target">{{ currentTarget?.label }}</strong>
       </div>
 
@@ -57,7 +57,7 @@
         </div>
       </div>
       <div class="legend small mt-3">
-        <span><i class="fas fa-keyboard me-1"></i> Có thể dùng phím máy tính (hàng A S D F ...)</span>
+        <span><i class="fas fa-keyboard me-1"></i> Phím tắt: trắng A S D F G H J K | đen W E T Y U</span>
       </div>
     </div>
   </div>
@@ -107,9 +107,11 @@ export default {
       const isBlack = n => n.includes('#');
       this.whiteKeys = notesDef.filter(n=>!isBlack(n.label)).map((n,i)=>({ ...n, id:`w-${n.label}`, type:'white', active:false, order:i }));
       this.blackKeys = notesDef.filter(n=>isBlack(n.label)).map((n,i)=>({ ...n, id:`b-${n.label}`, type:'black', active:false, order:i }));
-      // Map physical keys (8 white keys) -> a s d f g h j k
-      const letters = 'asdfghjk'.split('');
-      this.whiteKeys.slice(0, letters.length).forEach((k,i)=>{ this.keyMap[letters[i]] = k.label; });
+      // Map physical keys (white) -> a s d f g h j k
+      const whiteLetters = 'asdfghjk'.split('');
+      this.whiteKeys.slice(0, whiteLetters.length).forEach((k,i)=>{ this.keyMap[whiteLetters[i]] = k.label; });
+      // Map black keys -> w e t y u
+      Object.assign(this.keyMap, { w:'C#4', e:'D#4', t:'F#4', y:'G#4', u:'A#4' });
     },
     keysPool() {
       // Difficulty now defines which subset is used within single octave
