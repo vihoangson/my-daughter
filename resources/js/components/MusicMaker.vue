@@ -1,9 +1,9 @@
 <template>
-  <div class="music-maker-container" :class="feedbackClass">
+  <div class="music-maker-container">
     <div v-if="!gameStarted" class="overlay-screen">
       <h2>Music Maker - Piano</h2>
-      <!-- UPDATED DESCRIPTION: single octave C4->C5 -->
-      <p>Chơi đàn piano ảo 1 quãng (C4 đến C5). Bấm đúng nốt được yêu cầu: đúng +5 điểm, sai -2 điểm. Hết giờ để kết thúc và lưu điểm.</p>
+      <!-- DESCRIPTION UPDATED: single octave practice no scoring -->
+      <p>Chơi đàn piano ảo 1 quãng (C4 đến C5). Luyện tập bấm đúng nốt được yêu cầu trong thời gian quy định. Không có tính điểm.</p>
       <div class="settings mb-3">
         <label class="form-label fw-bold d-block mb-2">Chọn độ khó:</label>
         <div class="btn-group">
@@ -20,22 +20,14 @@
 
     <div v-if="gameOver" class="overlay-screen">
       <h2>Kết thúc!</h2>
-      <p>Điểm của bạn: {{ score }}</p>
-      <p v-if="bestScore !== null">Điểm cao nhất của bạn: {{ bestScore }}</p>
-      <p v-if="savingScore">Đang lưu điểm...</p>
-      <p v-if="saveError" class="text-warning">{{ saveError }}</p>
-      <p>Độ chính xác: {{ accuracy }}%</p>
-      <p>Tổng lượt: {{ attempts }} | Đúng: {{ hitNotes }} | Sai: {{ attempts - hitNotes }}</p>
+      <p>Hết thời gian luyện tập.</p>
       <button @click="startGame" class="restart-button">Chơi lại</button>
       <router-link to="/user-kid/game" class="btn btn-outline-light mt-3">Quay lại danh sách game</router-link>
     </div>
 
     <div v-if="gameStarted && !gameOver" class="hud">
-      <div>Điểm: <strong>{{ score }}</strong></div>
       <div>Thời gian: <strong>{{ timeLeft }}</strong>s</div>
       <div>Độ khó: <strong class="text-capitalize">{{ level }}</strong></div>
-      <div>Đúng/Sai: <strong>{{ hitNotes }}/{{ attempts }}</strong></div>
-      <div>Chính xác: <strong>{{ accuracy }}%</strong></div>
       <div>Nốt mục tiêu: <strong>{{ currentTarget?.label }}</strong></div>
     </div>
 
@@ -53,7 +45,7 @@
     <div v-if="gameStarted && !gameOver" class="piano-wrapper">
       <div class="target-note-display mb-3">
         <span>Nốt cần bấm:</span>
-        <strong class="ms-2 display-target" :class="{ pulse: feedbackState==='correct' }">{{ currentTarget?.label }}</strong>
+        <strong class="ms-2 display-target">{{ currentTarget?.label }}</strong>
       </div>
 
       <div class="piano" ref="pianoEl">
@@ -65,8 +57,6 @@
         </div>
       </div>
       <div class="legend small mt-3">
-        <span class="me-3"><span class="legend-box correct"></span> Đúng (+5)</span>
-        <span class="me-3"><span class="legend-box wrong"></span> Sai (-2)</span>
         <span><i class="fas fa-keyboard me-1"></i> Có thể dùng phím máy tính (hàng A S D F ...)</span>
       </div>
     </div>
@@ -74,8 +64,6 @@
 </template>
 
 <script>
-import axios from 'axios';
-
 export default {
   name: 'MusicMaker',
   data() {
@@ -92,25 +80,13 @@ export default {
       gameStarted: false,
       gameOver: false,
       isPaused: false,
-      score: 0,
-      hitNotes: 0,
-      attempts: 0,
       currentTarget: null,
       whiteKeys: [],
       blackKeys: [],
       keyMap: {},
-      savingScore: false,
-      bestScore: null,
-      saveError: null,
-      feedbackState: '',
-      feedbackTimer: null,
       audioCtx: null,
       keyDownSet: new Set(),
     };
-  },
-  computed: {
-    accuracy() { if (!this.attempts) return 0; return ((this.hitNotes / this.attempts) * 100).toFixed(0); },
-    feedbackClass() { return this.feedbackState ? `feedback-${this.feedbackState}` : ''; }
   },
   mounted() {
     this.buildKeyboard();
@@ -164,29 +140,22 @@ export default {
     },
     replayGame() { this.startGame(); },
     resetState() {
-      this.score = 0; this.hitNotes = 0; this.attempts = 0; this.currentTarget = null; this.feedbackState='';
+      this.currentTarget = null;
       this.clearTimer();
     },
     togglePause() { if (this.gameOver || !this.gameStarted) return; this.isPaused = !this.isPaused; },
     startTimer() { this.clearTimer(); this.timerHandle = setInterval(()=>{ if (this.isPaused) return; this.timeLeft--; if (this.timeLeft<=0) this.endGame(); },1000); },
     clearTimer() { if (this.timerHandle) { clearInterval(this.timerHandle); this.timerHandle=null; } },
-    endGame() { if (this.gameOver) return; this.gameOver = true; this.gameStarted = false; this.isPaused=false; this.clearTimer(); this.persistScore(); },
-    async persistScore() { this.savingScore=true; this.saveError=null; try { const { data } = await axios.post('/api/kid/game-scores',{ game_id:'music_maker', score:this.score }); this.bestScore=data.best_score; } catch(e){ console.error(e); this.saveError='Không lưu được điểm'; } finally { this.savingScore=false; } },
+    endGame() { if (this.gameOver) return; this.gameOver = true; this.gameStarted = false; this.isPaused=false; this.clearTimer(); },
     playKey(key) {
       if (!key) return;
       if (this.isPaused || this.gameOver || !this.gameStarted) { this.fireSound(key); return; }
-      // Visual active
       key.active = true; setTimeout(()=> key.active=false, 180);
       const correct = this.currentTarget && key.label === this.currentTarget.label;
-      this.attempts++;
-      if (correct) {
-        this.hitNotes++; this.score +=5; this.triggerFeedback('correct');
-      } else {
-        this.score = Math.max(0, this.score - 2); this.triggerFeedback('wrong');
-      }
       this.fireSound(key);
-      // prepare next
-      this.nextTarget();
+      if (correct) {
+        this.nextTarget();
+      }
     },
     fireSound(key) {
       if (!this.audioCtx) return;
@@ -203,7 +172,6 @@ export default {
     },
     isTarget(key) { return this.currentTarget && key.label === this.currentTarget.label; },
     blackKeysFor(whiteKey) {
-      // Determine if a black key sits after this white key in the octave pattern
       const labelBase = whiteKey.label.replace(/[0-9]/g,'');
       const octave = whiteKey.label.match(/[0-9]+/)[0];
       const sharpsAfter = { 'C': 'C#', 'D':'D#', 'F':'F#', 'G':'G#', 'A':'A#' };
@@ -211,10 +179,9 @@ export default {
       if (!sharp) return [];
       return this.blackKeys.filter(b=>b.label===sharp);
     },
-    triggerFeedback(type) { if (this.feedbackTimer) clearTimeout(this.feedbackTimer); this.feedbackState=type; this.feedbackTimer=setTimeout(()=>{ this.feedbackState=''; },400); },
     onKeyDown(e) {
       const key = e.key.toLowerCase();
-      if (this.keyDownSet.has(key)) return; // avoid repeat
+      if (this.keyDownSet.has(key)) return;
       this.keyDownSet.add(key);
       const mapped = this.keyMap[key];
       if (mapped) {
@@ -228,6 +195,7 @@ export default {
 </script>
 
 <style scoped>
+/* Style block restored after truncation; feedback flash classes removed */
 .music-maker-container { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; width:100%; background:linear-gradient(135deg,#283593,#1a237e); color:#fff; position:relative; overflow:hidden; padding:20px 10px; }
 .hud { position:absolute; top:10px; left:50%; transform:translateX(-50%); display:flex; gap:16px; background:rgba(0,0,0,0.45); padding:8px 20px; border-radius:30px; font-size:14px; backdrop-filter:blur(4px); pointer-events:none; flex-wrap:wrap; }
 .control-bar { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:10px; background:rgba(0,0,0,0.45); padding:8px 16px; border-radius:40px; backdrop-filter:blur(4px); }
@@ -247,12 +215,6 @@ export default {
 .key.black .note-label { color:#eee; }
 .key:active { transform:translateY(2px); }
 .legend-box { display:inline-block; width:16px; height:16px; border-radius:4px; margin-right:4px; vertical-align:middle; }
-.legend-box.correct { background:#4caf50; }
-.legend-box.wrong { background:#f44336; }
-.feedback-correct { animation: flashGreen 0.4s ease; }
-.feedback-wrong { animation: flashRed 0.4s ease; }
-@keyframes flashGreen { 0%{background:linear-gradient(135deg,#283593,#1a237e);} 20%,80%{background:radial-gradient(circle at center,#1b5e20 0%,#0d3d12 60%);} 100%{background:linear-gradient(135deg,#283593,#1a237e);} }
-@keyframes flashRed { 0%{background:linear-gradient(135deg,#283593,#1a237e);} 25%,75%{background:#7f0000;} 100%{background:linear-gradient(135deg,#283593,#1a237e);} }
 @media (max-width: 900px) { .key.white { width:44px; height:190px; } .key.black { width:30px; height:120px; left:27px; } }
 @media (max-width: 600px) { .key.white { width:36px; height:150px; margin:0 2px; } .key.black { width:26px; height:100px; left:22px; } .hud { font-size:11px; gap:8px; padding:6px 12px; top:8px; max-width:95%; } .control-bar { bottom:6px; padding:6px 14px; gap:8px; } .control-bar .btn { font-size:12px; padding:4px 10px; } }
 </style>
