@@ -24,6 +24,8 @@ class User extends Authenticatable
         'numeric_password',
         'type', // added
         'avatar',
+        'login_attempts',
+        'locked_until',
     ];
 
     /**

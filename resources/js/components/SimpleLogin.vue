@@ -147,7 +147,9 @@ export default {
       selectedType: null,
       password: '',
       isLoading: false,
-      errorMessage: ''
+      errorMessage: '',
+      remainingLockoutSeconds: 0,
+      lockoutCountdownInterval: null
     }
   },
   methods: {
@@ -190,7 +192,7 @@ export default {
 
       this.isLoading = true
       this.errorMessage = ''
-
+//todo: hiển thị lỗi nếu có đối với người dùng nhập sai mật khẩu nhiều lần
       try {
         const response = await axios.post('/api/auth/simple-login', {
           password: this.password,
@@ -210,8 +212,21 @@ export default {
           }
         }
       } catch (error) {
-        if (error.response && error.response.status === 401) {
-          this.errorMessage = 'Mật khẩu không đúng hoặc không tìm thấy tài khoản'
+        if (error.response) {
+          if (error.response.status === 401) {
+            this.errorMessage = 'Mật khẩu không đúng hoặc không tìm thấy tài khoản'
+          } else if (error.response.status === 429) {
+            // Handle rate limiting (too many login attempts)
+            const data = error.response.data
+            this.errorMessage = data.message || 'Bạn đã nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau.'
+
+            // If we have remaining seconds, we can show a countdown timer
+            if (data.remaining_seconds) {
+              this.startLockoutCountdown(data.remaining_seconds)
+            }
+          } else {
+            this.errorMessage = 'Có lỗi xảy ra. Vui lòng thử lại'
+          }
         } else {
           this.errorMessage = 'Có lỗi xảy ra. Vui lòng thử lại'
         }
@@ -219,6 +234,31 @@ export default {
       } finally {
         this.isLoading = false
       }
+    },
+    startLockoutCountdown(seconds) {
+      // Store the remaining seconds
+      this.remainingLockoutSeconds = seconds
+
+      // Clear any existing countdown interval
+      if (this.lockoutCountdownInterval) {
+        clearInterval(this.lockoutCountdownInterval)
+      }
+
+      // Set up the countdown interval
+      this.lockoutCountdownInterval = setInterval(() => {
+        // Decrease the remaining seconds
+        this.remainingLockoutSeconds--
+
+        // Update the error message with remaining time
+        this.errorMessage = `Bạn đã nhập sai mật khẩu quá nhiều lần. Vui lòng thử lại sau ${this.remainingLockoutSeconds} giây.`
+
+        // If the countdown is finished, clear the interval and reset
+        if (this.remainingLockoutSeconds <= 0) {
+          clearInterval(this.lockoutCountdownInterval)
+          this.lockoutCountdownInterval = null
+          this.errorMessage = 'Bạn có thể thử lại bây giờ.'
+        }
+      }, 1000)
     }
   }
 }
