@@ -2,7 +2,8 @@
   <div class="music-maker-container" :class="feedbackClass">
     <div v-if="!gameStarted" class="overlay-screen">
       <h2>Music Maker - Piano</h2>
-      <p>Chơi đàn piano ảo và ghi điểm bằng cách bấm đúng nốt được yêu cầu. Đúng +5 điểm, sai -2 đi��m. Hết giờ để kết thúc và lưu điểm.</p>
+      <!-- UPDATED DESCRIPTION: single octave C4->C5 -->
+      <p>Chơi đàn piano ảo 1 quãng (C4 đến C5). Bấm đúng nốt được yêu cầu: đúng +5 điểm, sai -2 điểm. Hết giờ để kết thúc và lưu điểm.</p>
       <div class="settings mb-3">
         <label class="form-label fw-bold d-block mb-2">Chọn độ khó:</label>
         <div class="btn-group">
@@ -123,21 +124,28 @@ export default {
   },
   methods: {
     buildKeyboard() {
-      // Base frequencies (approx). We'll build 2 octaves C4-B5 for hard.
+      // Single octave C4 -> C5 (inclusive high C5)
       const notesDef = [
-        { label:'C4', freq:261.63 },{ label:'C#4', freq:277.18 },{ label:'D4', freq:293.66 },{ label:'D#4', freq:311.13 },{ label:'E4', freq:329.63 },{ label:'F4', freq:349.23 },{ label:'F#4', freq:369.99 },{ label:'G4', freq:392.00 },{ label:'G#4', freq:415.30 },{ label:'A4', freq:440.00 },{ label:'A#4', freq:466.16 },{ label:'B4', freq:493.88 },
-        { label:'C5', freq:523.25 },{ label:'C#5', freq:554.37 },{ label:'D5', freq:587.33 },{ label:'D#5', freq:622.25 },{ label:'E5', freq:659.25 },{ label:'F5', freq:698.46 },{ label:'F#5', freq:739.99 },{ label:'G5', freq:783.99 },{ label:'G#5', freq:830.61 },{ label:'A5', freq:880.00 },{ label:'A#5', freq:932.33 },{ label:'B5', freq:987.77 }
+        { label:'C4', freq:261.63 },{ label:'C#4', freq:277.18 },{ label:'D4', freq:293.66 },{ label:'D#4', freq:311.13 },{ label:'E4', freq:329.63 },{ label:'F4', freq:349.23 },{ label:'F#4', freq:369.99 },{ label:'G4', freq:392.00 },{ label:'G#4', freq:415.30 },{ label:'A4', freq:440.00 },{ label:'A#4', freq:466.16 },{ label:'B4', freq:493.88 },{ label:'C5', freq:523.25 }
       ];
       const isBlack = n => n.includes('#');
       this.whiteKeys = notesDef.filter(n=>!isBlack(n.label)).map((n,i)=>({ ...n, id:`w-${n.label}`, type:'white', active:false, order:i }));
       this.blackKeys = notesDef.filter(n=>isBlack(n.label)).map((n,i)=>({ ...n, id:`b-${n.label}`, type:'black', active:false, order:i }));
-      // Map keyboard letters to a subset of white keys for convenience
-      const letters = 'asdfghjkl;'.split('');
+      // Map physical keys (8 white keys) -> a s d f g h j k
+      const letters = 'asdfghjk'.split('');
       this.whiteKeys.slice(0, letters.length).forEach((k,i)=>{ this.keyMap[letters[i]] = k.label; });
     },
     keysPool() {
-      if (this.level === 'easy') return this.whiteKeys.filter(k=>k.label.endsWith('4')); // one octave white
-      if (this.level === 'middle') return [...this.whiteKeys.filter(k=>k.label.endsWith('4')), ...this.blackKeys.filter(k=>k.label.endsWith('4'))];
+      // Difficulty now defines which subset is used within single octave
+      if (this.level === 'easy') {
+        // Only white keys
+        return [...this.whiteKeys];
+      }
+      if (this.level === 'middle') {
+        // White + half of black (filter by even index for variety)
+        return [...this.whiteKeys, ...this.blackKeys.filter((_,i)=> i % 2 === 0)];
+      }
+      // hard: all keys in the octave
       return [...this.whiteKeys, ...this.blackKeys];
     },
     nextTarget() {
