@@ -43,7 +43,7 @@
       <router-link to="/user-kid/game" class="btn btn-outline-light mt-3">Quay lại danh sách game</router-link>
     </div>
 
-    <div id="math-adventure-game"></div>
+    <div id="math-adventure-game" ref="gameParent" class="game-stage"></div>
 
     <div v-if="gameStarted && !gameOver" class="hud">
       <div>Điểm: <strong>{{ score }}</strong></div>
@@ -86,6 +86,9 @@ export default {
       spawnTimer: null,
       fallSpeed: 120,
       isPaused: false,
+      gameWidth: 800,
+      gameHeight: 600,
+      resizeObserver: null,
       difficulties: [
         { value: 'easy', valueInternal: 'easy', label: 'Dễ' },
         { value: 'middle', valueInternal: 'middle', label: 'Trung bình' },
@@ -105,12 +108,30 @@ export default {
     }
   },
   mounted() {
+    this.calcGameSize();
+    window.addEventListener('resize', this.handleResize, { passive: true });
     this.initConfig();
   },
   beforeUnmount() {
+    window.removeEventListener('resize', this.handleResize);
     this.destroyGame();
   },
   methods: {
+    handleResize() {
+      this.calcGameSize();
+      if (this.game) {
+        this.game.scale.resize(this.gameWidth, this.gameHeight);
+      }
+    },
+    calcGameSize() {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      // Padding to keep HUD/buttons visible on very small screens
+      const minW = 320; const minH = 420;
+      // Prefer full width; cap to 1024 for performance
+      this.gameWidth = Math.max(minW, Math.min(vw, 1024));
+      this.gameHeight = Math.max(minH, vh); // use full viewport height
+    },
     initConfig() {
       const self = this;
 
@@ -126,7 +147,7 @@ export default {
         }
 
         update(time, delta) {
-          if (this.vue.gameOver) return;
+          if (this.vue.gameOver || this.vue.isPaused) return;
           // Spawn new block
           if (time - this.lastSpawn > this.spawnInterval) {
             this.lastSpawn = time;
@@ -135,10 +156,12 @@ export default {
             this.spawnInterval = self.getSpawnInterval();
             this.speed = self.getBlockSpeed();
           }
+          const h = this.scale.height;
+
           // Move blocks
           this.blocks.getChildren().forEach(block => {
             block.y += this.speed * (delta / 1000);
-            if (block.y - block.height/2 > 600) {
+            if (block.y - block.height/2 > h) {
               block.destroy();
             }
           });
@@ -146,7 +169,9 @@ export default {
 
         spawnBlock() {
           const { expression, isCorrect } = self.generateExpression();
-          const x = Phaser.Math.Between(60, 740);
+          const padding = 60;
+          const w = this.scale.width;
+          const x = Phaser.Math.Between(padding, Math.max(padding, w - padding));
           const color = self.getColor();
 
           // Base rectangle + text
@@ -157,7 +182,7 @@ export default {
           container.clicked = false;
           container.setSize(120, 50);
           // Simple interactive area based on setSize
-          container.setInteractive();
+          container.setInteractive({ useHandCursor: true });
 
           container.on('pointerdown', () => {
             if (this.vue.gameOver || container.clicked) return;
@@ -180,15 +205,20 @@ export default {
 
       this.gameConfig = {
         type: Phaser.AUTO,
-        width: 800,
-        height: 600,
+        width: this.gameWidth,
+        height: this.gameHeight,
         parent: 'math-adventure-game',
         backgroundColor: '#0d47a1',
+        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
         scene: MathScene
       };
     },
     startGame() {
       this.destroyGame();
+      // ensure size up-to-date right before start
+      this.calcGameSize();
+      this.gameConfig.width = this.gameWidth;
+      this.gameConfig.height = this.gameHeight;
       this.score = 0;
       this.correctClicks = 0;
       this.wrongClicks = 0;
@@ -324,13 +354,17 @@ export default {
   background: linear-gradient(135deg,#1e3c72,#2a5298);
   position: relative;
   color: #fff;
-}
-#math-adventure-game {
-  border: 3px solid #fff;
-  border-radius: 12px;
+  width: 100%;
+  height: 100vh;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
+.game-stage {
+  width: 100%;
+  height: 100%;
+  max-width: 1024px;
+  flex: 1 1 auto;
+}
+#math-adventure-game canvas { width: 100% !important; height: 100% !important; }
 .hud {
   position: absolute;
   top: 10px;
@@ -380,4 +414,9 @@ export default {
 }
 .start-button:hover, .restart-button:hover { transform: translateY(-3px); }
 .settings label { color:#fff; }
+@media (max-width: 600px) {
+  .hud { font-size: 11px; gap: 10px; padding: 6px 14px; }
+  .overlay-screen h2 { font-size: 2.2rem; }
+  .start-button, .restart-button { font-size: 16px; padding: 12px 28px; }
+}
 </style>
