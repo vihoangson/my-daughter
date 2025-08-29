@@ -5,6 +5,7 @@ use App\Http\Controllers\ParentChildController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\KidController;
 use App\Http\Controllers\KidRequestController;
+use App\Http\Controllers\GameScoreController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -64,6 +65,9 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('requests', [KidRequestController::class, 'index']);
         Route::post('requests', [KidRequestController::class, 'store']);
         Route::get('requests/{id}', [KidRequestController::class, 'show']);
+
+        // Game score routes
+        Route::post('game-scores', [GameScoreController::class, 'store']);
     });
 });
 

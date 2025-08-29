@@ -35,6 +35,9 @@
     <div v-if="gameOver" class="overlay-screen">
       <h2>Hết giờ!</h2>
       <p>Điểm của bạn: {{ score }}</p>
+      <p v-if="bestScore !== null">Điểm cao nhất của bạn: {{ bestScore }}</p>
+      <p v-if="savingScore">Đang lưu điểm...</p>
+      <p v-if="saveError" class="text-warning">{{ saveError }}</p>
       <p>Độ chính xác: {{ accuracy }}%</p>
       <button @click="startGame" class="restart-button">Chơi lại</button>
       <router-link to="/user-kid/game" class="btn btn-outline-light mt-3">Quay lại danh sách game</router-link>
@@ -65,6 +68,7 @@
 
 <script>
 import Phaser from 'phaser';
+import axios from 'axios';
 
 export default {
   name: 'MathAdventure',
@@ -87,7 +91,10 @@ export default {
         { value: 'middle', valueInternal: 'middle', label: 'Trung bình' },
         { value: 'hard', valueInternal: 'hard', label: 'Khó' }
       ],
-      gameConfig: null
+      gameConfig: null,
+      savingScore: false,
+      bestScore: null,
+      saveError: null,
     };
   },
   computed: {
@@ -220,7 +227,21 @@ export default {
       this.gameOver = true;
       this.gameStarted = false;
       this.isPaused = false;
+      this.persistScore();
       this.destroyGame();
+    },
+    async persistScore() {
+      this.savingScore = true;
+      this.saveError = null;
+      try {
+        const { data } = await axios.post('/api/kid/game-scores', { game_id: 'math_adventure', score: this.score });
+        this.bestScore = data.best_score;
+      } catch (e) {
+        console.error('Save score failed', e);
+        this.saveError = 'Không lưu được điểm';
+      } finally {
+        this.savingScore = false;
+      }
     },
     destroyGame() {
       if (this.game) {
