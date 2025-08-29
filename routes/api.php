@@ -78,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::post('stocks/buy', [StockController::class, 'buy']);
         Route::post('stocks/sell', [StockController::class, 'sell']);
         Route::post('stocks/refresh', [StockController::class, 'refresh']);
+        Route::get('stocks/{stock}/prices', [StockController::class, 'prices']); // price history
     });
 });
 

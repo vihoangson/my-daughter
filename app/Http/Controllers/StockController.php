@@ -2,7 +2,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\{Stock, StockHolding, StockTrade, User};
+use App\Models\{Stock, StockHolding, StockTrade, StockPrice, User};
 use Illuminate\Support\Facades\DB;
 
 class StockController extends Controller
@@ -25,14 +25,39 @@ class StockController extends Controller
         $user = $request->user();
         if (!$user || $user->type !== 'child') return response()->json(['message'=>'Forbidden'], 403);
         $stocks = Stock::all();
-        foreach ($stocks as $stock) {
-            // random -10%..+10%
-            $percent = random_int(-10, 10); // integer percent
-            $new = (int) round(max(1, $stock->current_price * (1 + $percent / 100)));
-            $stock->current_price = $new;
-            $stock->save();
-        }
+        DB::transaction(function() use ($stocks){
+            foreach ($stocks as $stock) {
+                $percent = random_int(-10, 10);
+                $new = (int) round(max(1, $stock->current_price * (1 + $percent / 100)));
+                $stock->current_price = $new;
+                $stock->save();
+                StockPrice::create([
+                    'stock_id' => $stock->id,
+                    'price' => $stock->current_price,
+                    'captured_at' => now(),
+                ]);
+                // keep only latest 200 points
+                $ids = StockPrice::where('stock_id',$stock->id)->orderByDesc('captured_at')->skip(200)->pluck('id');
+                if ($ids->count()) StockPrice::whereIn('id',$ids)->delete();
+            }
+        });
         return response()->json(['stocks'=>Stock::orderBy('code')->get()]);
+    }
+
+    public function prices(Request $request, Stock $stock)
+    {
+        $user = $request->user();
+        if (!$user || $user->type !== 'child') return response()->json(['message'=>'Forbidden'],403);
+        $history = StockPrice::where('stock_id',$stock->id)->orderBy('captured_at','asc')->limit(200)->get(['price','captured_at']);
+        // if empty (first time), seed one point
+        if ($history->isEmpty()) {
+            StockPrice::create(['stock_id'=>$stock->id,'price'=>$stock->current_price,'captured_at'=>now()]);
+            $history = StockPrice::where('stock_id',$stock->id)->orderBy('captured_at','asc')->limit(200)->get(['price','captured_at']);
+        }
+        return response()->json([
+            'stock' => $stock->only(['id','code','name','current_price']),
+            'history' => $history,
+        ]);
     }
 
     // Holdings

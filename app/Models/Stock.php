@@ -4,6 +4,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\StockHolding;
+use App\Models\StockPrice;
 
 class Stock extends Model
 {
@@ -13,5 +14,10 @@ class Stock extends Model
     public function holdings()
     {
         return $this->hasMany(StockHolding::class);
+    }
+
+    public function prices()
+    {
+        return $this->hasMany(StockPrice::class);
     }
 }

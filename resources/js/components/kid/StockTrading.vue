@@ -27,10 +27,15 @@
               </thead>
               <tbody>
                 <tr v-for="s in stocks" :key="s.id">
-                  <td><strong>{{ s.code }}</strong></td>
+                  <td>
+                    <button class="btn btn-link p-0 fw-bold" @click="openHistory(s)" title="Xem biểu đồ giá">{{ s.code }}</button>
+                  </td>
                   <td>{{ s.name }}</td>
                   <td>
-                    <span :class="priceClass(s)">{{ s.current_price }}</span>
+                    <span :class="priceClass(s)" class="me-2">{{ s.current_price }}</span>
+                    <button class="btn btn-xs btn-outline-secondary btn-sm" @click="openHistory(s)" title="Biểu đồ">
+                      <i class="fas fa-chart-line"></i>
+                    </button>
                   </td>
                   <td style="width:110px;">
                     <div class="input-group input-group-sm">
@@ -170,11 +175,64 @@
       </div>
 
       <div v-if="message" class="alert mt-3" :class="{'alert-success': success, 'alert-danger': !success}">{{ message }}</div>
+
+      <!-- Price History Modal -->
+      <div v-if="showHistory" class="modal d-block" style="background:rgba(0,0,0,0.6);">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Biểu đồ giá: {{ historyStock?.code }} - {{ historyStock?.name }}</h5>
+              <button class="btn-close" @click="closeHistory"></button>
+            </div>
+            <div class="modal-body">
+              <div v-if="historyLoading" class="text-center py-4">
+                <div class="spinner-border text-primary"></div>
+                <div class="mt-2 small">Đang tải dữ liệu...</div>
+              </div>
+              <div v-else>
+                <div v-if="!priceHistory.length" class="text-muted small">Chưa có dữ liệu.</div>
+                <div v-else>
+                  <div class="d-flex flex-wrap mb-2 small">
+                    <div class="me-3">Điểm: {{ priceHistory.length }}</div>
+                    <div class="me-3">Giá mới nhất: <strong>{{ priceHistory[priceHistory.length-1].price }}</strong></div>
+                    <div class="me-3" v-if="priceHistory.length>1">Thay đổi: <span :class="profitClass(latestChange)">{{ formatSigned(latestChange) }}</span></div>
+                    <div class="me-3" v-if="priceHistory.length>1">Min: {{ minPrice }} / Max: {{ maxPrice }}</div>
+                  </div>
+                  <div class="border rounded p-2 bg-light position-relative" style="height:220px;">
+                    <svg :viewBox="'0 0 '+chartWidth+' '+chartHeight" preserveAspectRatio="none" style="width:100%;height:100%;">
+                      <defs>
+                        <linearGradient :id="gradientId" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stop-color="#28a745" stop-opacity="0.4" />
+                          <stop offset="100%" stop-color="#28a745" stop-opacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <polyline :points="polylinePoints" fill="none" stroke="#28a745" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+                      <polygon v-if="areaPoints" :points="areaPoints" fill="url(#'+gradientId+')" />
+                      <!-- Horizontal guide lines -->
+                      <g stroke="#ccc" stroke-dasharray="3,3" stroke-width="1">
+                        <line v-for="g in guideLines" :key="g" :x1="0" :x2="chartWidth" :y1="g" :y2="g" />
+                      </g>
+                      <!-- Last point marker -->
+                      <circle v-if="lastPoint" :cx="lastPoint.x" :cy="lastPoint.y" r="3" fill="#dc3545" />
+                    </svg>
+                  </div>
+                  <div class="small text-muted mt-2">Biểu đồ chứa tối đa 200 điểm gần nhất. Giá cập nhật khi bạn bấm "Cập nhật giá".</div>
+                  <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-secondary me-2" @click="reloadHistory" :disabled="historyLoading">Tải lại</button>
+                    <button class="btn btn-sm btn-primary" @click="closeHistory">Đóng</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import axios from 'axios';
 
 const stocks = ref([]);
@@ -192,6 +250,48 @@ const trades = ref([]);
 const realizedProfit = ref(0);
 const loadingTrades = ref(false);
 
+const showHistory = ref(false);
+const historyLoading = ref(false);
+const priceHistory = ref([]); // {price, captured_at}
+const historyStock = ref(null);
+const gradientId = 'grad-'+Math.random().toString(36).slice(2);
+
+const chartWidth = 600; // logical SVG width
+const chartHeight = 180; // logical SVG height (padding below for axis not drawn)
+const polylinePoints = computed(()=>{
+  if (!priceHistory.value.length) return '';
+  const prices = priceHistory.value.map(p=>p.price);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const span = max-min || 1;
+  const step = chartWidth / Math.max(1, prices.length-1);
+  return prices.map((p,i)=> (i*step).toFixed(2)+','+( (chartHeight- ((p-min)/span)*chartHeight).toFixed(2)) ).join(' ');
+});
+const areaPoints = computed(()=>{
+  if (!polylinePoints.value) return '';
+  const firstX = '0,'+chartHeight;
+  const lastX = chartWidth+','+chartHeight;
+  return firstX+' '+polylinePoints.value+' '+lastX;
+});
+const lastPoint = computed(()=>{
+  if (!priceHistory.value.length) return null;
+  const pts = polylinePoints.value.split(' ');
+  const last = pts[pts.length-1].split(',');
+  return { x: parseFloat(last[0]), y: parseFloat(last[1]) };
+});
+const minPrice = computed(()=> priceHistory.value.length ? Math.min(...priceHistory.value.map(p=>p.price)) : 0);
+const maxPrice = computed(()=> priceHistory.value.length ? Math.max(...priceHistory.value.map(p=>p.price)) : 0);
+const latestChange = computed(()=>{
+  if (priceHistory.value.length < 2) return 0;
+  const a = priceHistory.value[priceHistory.value.length-2].price;
+  const b = priceHistory.value[priceHistory.value.length-1].price;
+  return b-a;
+});
+const guideLines = computed(()=>{
+  // 4 guide lines
+  return [0.25,0.5,0.75].map(r=> (chartHeight*r).toFixed(2));
+});
+
 const showMsg = (msg, ok=true)=>{ message.value = msg; success.value = ok; if(msg) setTimeout(()=>message.value='',3000); };
 
 const loadStocks = async () => {
@@ -199,6 +299,11 @@ const loadStocks = async () => {
     const r = await axios.get('/api/kid/stocks');
     stocks.value = r.data.stocks;
     balance.value = r.data.acoin_balance;
+    // set default 0 for inputs
+    stocks.value.forEach(s => {
+      if (buyQty[s.id] === undefined) buyQty[s.id] = 0;
+      if (sellQty[s.id] === undefined) sellQty[s.id] = 0;
+    });
   } catch(e){ console.error(e); }
 };
 const loadHoldings = async () => {
@@ -233,7 +338,7 @@ const buy = async (s) => {
   try {
     const r = await axios.post('/api/kid/stocks/buy', { stock_id: s.id, quantity: q });
     applyState(r.data);
-    buyQty[s.id] = 1;
+    buyQty[s.id] = 0; // reset to 0 after buy
     await Promise.all([loadSummary(), loadTrades()]);
     showMsg('Mua thành công!');
   } catch(e){
@@ -247,7 +352,7 @@ const sell = async (s) => {
   try {
     const r = await axios.post('/api/kid/stocks/sell', { stock_id: s.id, quantity: q });
     applyState(r.data);
-    sellQty[s.id] = 1;
+    sellQty[s.id] = 0; // reset to 0 after sell
     await Promise.all([loadSummary(), loadTrades()]);
     showMsg('Bán thành công!');
   } catch(e){
@@ -288,8 +393,27 @@ const formatSigned = (v) => { if (v === null || v === undefined) return '0'; ret
 const profitClass = (v) => v > 0 ? 'text-success fw-semibold' : (v < 0 ? 'text-danger fw-semibold' : '');
 const formatDate = (d) => new Date(d).toLocaleString('vi-VN', { hour12:false });
 
+const openHistory = async (stock) => {
+  historyStock.value = stock;
+  showHistory.value = true;
+  await fetchHistory();
+};
+const closeHistory = () => { showHistory.value=false; priceHistory.value=[]; historyStock.value=null; };
+const fetchHistory = async () => {
+  if (!historyStock.value) return;
+  historyLoading.value = true;
+  try {
+    const r = await axios.get(`/api/kid/stocks/${historyStock.value.id}/prices`);
+    priceHistory.value = r.data.history;
+    // sort ascending just in case
+    priceHistory.value.sort((a,b)=> new Date(a.captured_at)-new Date(b.captured_at));
+  } catch(e){ console.error(e); } finally { historyLoading.value=false; }
+};
+const reloadHistory = fetchHistory;
+
 loadAll();
 </script>
 <style scoped>
 .table td, .table th { vertical-align: middle; }
+.btn-xs { padding: 0 .4rem; font-size: .65rem; line-height: 1.1; }
 </style>
