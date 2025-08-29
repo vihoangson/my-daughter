@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Log; // added
 
 class User extends Authenticatable
 {
@@ -26,6 +27,7 @@ class User extends Authenticatable
         'avatar',
         'login_attempts',
         'locked_until',
+        'acoin_balance', // added Acoin balance
     ];
 
     /**
@@ -59,8 +61,7 @@ class User extends Authenticatable
             // Use asset() helper to generate correct URL for local files
             return asset('storage/' . $this->avatar);
         } catch (\Throwable $e) {
-            // Log the error for debugging
-            \Log::warning('Avatar URL generation failed', [
+            Log::warning('Avatar URL generation failed', [
                 'user_id' => $this->id,
                 'avatar_path' => $this->avatar,
                 'error' => $e->getMessage()
@@ -69,5 +70,11 @@ class User extends Authenticatable
             // Return null to trigger default avatar in frontend
             return null;
         }
+    }
+
+    // Relationships for stocks
+    public function stockHoldings()
+    {
+        return $this->hasMany(StockHolding::class);
     }
 }

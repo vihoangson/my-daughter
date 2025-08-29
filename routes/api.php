@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\KidController;
 use App\Http\Controllers\KidRequestController;
 use App\Http\Controllers\GameScoreController;
+use App\Http\Controllers\StockController; // added
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -68,6 +69,15 @@ Route::middleware('auth:sanctum')->group(function(){
 
         // Game score routes
         Route::post('game-scores', [GameScoreController::class, 'store']);
+
+        // Stock trading routes
+        Route::get('stocks', [StockController::class, 'index']);
+        Route::get('stocks/holdings', [StockController::class, 'holdings']);
+        Route::get('stocks/trades', [StockController::class, 'trades']); // added
+        Route::get('stocks/summary', [StockController::class, 'summary']); // added
+        Route::post('stocks/buy', [StockController::class, 'buy']);
+        Route::post('stocks/sell', [StockController::class, 'sell']);
+        Route::post('stocks/refresh', [StockController::class, 'refresh']);
     });
 });
 

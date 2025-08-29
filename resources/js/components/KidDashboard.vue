@@ -57,6 +57,11 @@
               <i class="fas fa-gamepad me-1"></i> Trò chơi 1
             </router-link>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" :class="{ active: activeTab === 'stocks' }" href="#" @click.prevent="activeTab = 'stocks'">
+              <i class="fas fa-coins me-1"></i> Cổ phiếu
+            </a>
+          </li>
         </ul>
       </div>
     </div>
@@ -452,6 +457,11 @@
       </div>
     </div>
 
+    <!-- Stocks Tab Content -->
+    <div v-if="activeTab === 'stocks'">
+      <StockTrading />
+    </div>
+
     <!-- Image Modal -->
     <div v-if="showImage" class="modal d-block" style="background-color: rgba(0,0,0,0.8); z-index: 1060;">
       <div class="modal-dialog modal-dialog-centered">
@@ -476,6 +486,7 @@ import { useRouter } from 'vue-router';
 import RequestForm from './kid/RequestForm.vue';
 import RequestHistory from './kid/RequestHistory.vue';
 import Toast from './common/Toast.vue'; // Fix import path to Toast component
+import StockTrading from './kid/StockTrading.vue'; // added
 
 const router = useRouter();
 const loading = ref(true);
