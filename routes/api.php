@@ -48,6 +48,8 @@ Route::middleware('auth:sanctum')->group(function(){
         // Points management routes
         Route::get('kid/{kid}/points-history', [RewardPunishmentController::class, 'kidPointsHistory']);
         Route::post('kid/{kid}/points', [RewardPunishmentController::class, 'addPoints']);
+        // Add route for kids/{kid}/points to handle the current client requests
+        Route::post('kids/{kid}/points', [RewardPunishmentController::class, 'addPoints']);
     });
 
     // Kid routes
