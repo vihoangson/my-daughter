@@ -1,13 +1,12 @@
 <template>
   <div class="simple-login-container">
-    <div class="container-fluid vh-100 d-flex align-items-center justify-content-center bg-gradient">
+    <div class="container-fluid vh-50 d-flex align-items-center justify-content-center bg-gradient">
       <div class="row w-100">
         <div class="col-12 col-md-6 col-lg-4 mx-auto">
           <div class="card shadow-lg border-0 rounded-4">
             <div class="card-body p-5">
               <div class="text-center mb-4">
                 <h2 class="fw-bold text-primary mb-3">Đăng Nhập</h2>
-                <p class="text-muted">Chọn loại tài khoản của bạn</p>
               </div>
 
               <!-- User Type Selection -->
@@ -47,7 +46,6 @@
                     <i :class="selectedType === 'parent' ? 'fas fa-user-tie' : 'fas fa-child'" class="me-2"></i>
                     {{ selectedType === 'parent' ? 'Phụ Huynh' : 'Trẻ Em' }}
                   </h4>
-                  <p class="text-muted">Nhập mật khẩu số</p>
                 </div>
 
                 <!-- Password Display -->
