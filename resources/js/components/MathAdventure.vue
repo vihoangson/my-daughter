@@ -1,5 +1,5 @@
 <template>
-  <div class="game-container">
+  <div class="game-container" :class="feedbackClass">
     <div v-if="!gameStarted" class="overlay-screen">
       <h2>Math Adventure</h2>
       <!-- Updated instruction text to reflect new ranges per difficulty -->
@@ -98,6 +98,8 @@ export default {
       savingScore: false,
       bestScore: null,
       saveError: null,
+      feedbackState: '', // '', 'correct', 'wrong'
+      feedbackTimer: null,
     };
   },
   computed: {
@@ -105,6 +107,9 @@ export default {
       const total = this.correctClicks + this.wrongClicks;
       if (!total) return 0;
       return ((this.correctClicks / total) * 100).toFixed(0);
+    },
+    feedbackClass() {
+      return this.feedbackState ? `feedback-${this.feedbackState}` : '';
     }
   },
   mounted() {
@@ -131,6 +136,11 @@ export default {
       // Prefer full width; cap to 1024 for performance
       this.gameWidth = Math.max(minW, Math.min(vw, 1024));
       this.gameHeight = Math.max(minH, vh); // use full viewport height
+    },
+    triggerFeedback(type) {
+      if (this.feedbackTimer) clearTimeout(this.feedbackTimer);
+      this.feedbackState = type; // 'correct' or 'wrong'
+      this.feedbackTimer = setTimeout(() => { this.feedbackState = ''; }, 500);
     },
     initConfig() {
       const self = this;
@@ -173,11 +183,10 @@ export default {
           const w = this.scale.width;
           const x = Phaser.Math.Between(padding, Math.max(padding, w - padding));
           const color = self.getColor();
-
-          // Base rectangle + text
           const rect = this.add.rectangle(0, 0, 120, 50, color, 0.95).setStrokeStyle(2, 0xffffff, 0.8);
           const text = this.add.text(0, 0, expression, { fontSize: '18px', fontFamily: 'Arial', color: '#ffffff' }).setOrigin(0.5);
           const container = this.add.container(x, -30, [rect, text]);
+          container.rect = rect;
           container.isCorrect = isCorrect;
           container.clicked = false;
           container.setSize(120, 50);
@@ -190,13 +199,34 @@ export default {
             if (container.isCorrect) {
               this.vue.correctClicks++;
               this.vue.score += 2;
-              self.flashContainer(container, 0x00c853);
+              self.triggerFeedback('correct');
+              // Turn block green and fade out after 500ms
+              container.rect.setFillStyle(0x00c853, 0.95);
+              this.tweens.add({ targets: container, scale: 1.05, yoyo: true, duration: 200 });
+              this.time.delayedCall(500, () => {
+                this.tweens.add({ targets: container, alpha: 0, duration: 250, onComplete: () => container.destroy() });
+              });
             } else {
               this.vue.wrongClicks++;
               this.vue.score = Math.max(0, this.vue.score - 1);
-              self.flashContainer(container, 0xd50000);
+              self.triggerFeedback('wrong');
+              // Blink red for 0.5s then destroy
+              const originalColor = container.rect.fillColor;
+              let blink = true;
+              const blinkEvent = this.time.addEvent({
+                delay: 100,
+                repeat: 4, // 5 toggles over ~500ms
+                callback: () => {
+                  container.rect.setFillStyle(blink ? 0xd50000 : 0x000000, blink ? 0.95 : 0.2);
+                  blink = !blink;
+                }
+              });
+              this.time.delayedCall(500, () => {
+                blinkEvent.remove(false);
+                container.rect.setFillStyle(originalColor, 0.95);
+                this.tweens.add({ targets: container, alpha: 0, duration: 220, onComplete: () => container.destroy() });
+              });
             }
-            this.tweens.add({ targets: container, alpha: 0, duration: 300, onComplete: () => container.destroy() });
           });
 
           this.blocks.add(container);
@@ -334,12 +364,6 @@ export default {
       }
       return 0;
     },
-    flashContainer(container, color) {
-      const scene = container.scene;
-      // overlay rectangle
-      const flash = scene.add.rectangle(container.x, container.y, 120, 50, color, 0.4).setDepth(10);
-      scene.time.delayedCall(150, () => flash.destroy());
-    }
   }
 };
 </script>
@@ -414,8 +438,40 @@ export default {
 }
 .start-button:hover, .restart-button:hover { transform: translateY(-3px); }
 .settings label { color:#fff; }
+.feedback-correct { animation: feedbackGreen 0.5s ease; }
+.feedback-wrong { animation: feedbackRed 0.5s ease; }
+@keyframes feedbackGreen {
+  0% { filter: none; }
+  10%,90% { background: radial-gradient(circle at center, #1b5e20 0%, #0d3d12 60%) !important; }
+  100% { background: linear-gradient(135deg,#1e3c72,#2a5298); }
+}
+@keyframes feedbackRed {
+  0% { background: linear-gradient(135deg,#1e3c72,#2a5298); }
+  15% { background: #b71c1c; }
+  30% { background: #7f0000; }
+  45% { background: #b71c1c; }
+  60% { background: #7f0000; }
+  75% { background: #b71c1c; }
+  100% { background: linear-gradient(135deg,#1e3c72,#2a5298); }
+}
 @media (max-width: 600px) {
-  .hud { font-size: 11px; gap: 10px; padding: 6px 14px; }
+  .hud {
+    font-size: 11px;
+    gap: 10px;
+    padding: 6px 14px;
+    top: 62px; /* pushed below control buttons */
+    left: 50%;
+    transform: translateX(-50%);
+    flex-wrap: wrap;
+    max-width: 95%;
+  }
+  .control-bar {
+    top: 8px;
+    right: 50%;
+    transform: translateX(50%); /* center control bar on mobile */
+    width: auto;
+    justify-content: center;
+  }
   .overlay-screen h2 { font-size: 2.2rem; }
   .start-button, .restart-button { font-size: 16px; padding: 12px 28px; }
 }
