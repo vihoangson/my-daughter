@@ -5,8 +5,8 @@
         <div class="col-12 col-md-6 col-lg-4 mx-auto">
           <div class="card shadow-lg border-0 rounded-4">
             <div class="card-body p-5">
-              <div class="text-center mb-4">
-                <h2 class="fw-bold text-primary mb-3">Đăng Nhập</h2>
+              <div class="text-center mb-1">
+                <h3 class="fw-bold text-primary mb-3">Đăng Nhập</h3>
               </div>
 
               <!-- User Type Selection -->
