@@ -43,7 +43,7 @@ class AuthController extends Controller
     public function simpleLogin(Request $request)
     {
         $credentials = $request->validate([
-            'password' => 'required|string|size:6',
+            'password' => 'required|string|size:4',
             'type' => 'required|string|in:parent,child'
         ]);
 
