@@ -17,6 +17,7 @@
         "vue-router": "^4.2.0"
     },
     "dependencies": {
+        "phaser": "^3.90.0",
         "vue-jigsaw-puzzle": "^1.0.0"
     }
 }
