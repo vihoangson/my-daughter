@@ -405,11 +405,16 @@ export default {
 }
 .control-bar {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   z-index: 10;
-  gap: 6px;
+  gap: 10px;
+  background: rgba(0,0,0,0.45);
+  padding: 8px 16px;
+  border-radius: 40px;
+  backdrop-filter: blur(4px);
 }
 .overlay-screen {
   position: absolute;
@@ -457,22 +462,19 @@ export default {
 @media (max-width: 600px) {
   .hud {
     font-size: 11px;
-    gap: 10px;
-    padding: 6px 14px;
-    top: 62px; /* pushed below control buttons */
+    gap: 8px;
+    padding: 6px 12px;
+    top: 8px; /* back to top since control buttons moved bottom */
     left: 50%;
     transform: translateX(-50%);
     flex-wrap: wrap;
     max-width: 95%;
   }
   .control-bar {
-    top: 8px;
-    right: 50%;
-    transform: translateX(50%); /* center control bar on mobile */
-    width: auto;
-    justify-content: center;
+    bottom: 6px;
+    padding: 6px 14px;
+    gap: 8px;
   }
-  .overlay-screen h2 { font-size: 2.2rem; }
-  .start-button, .restart-button { font-size: 16px; padding: 12px 28px; }
+  .control-bar .btn { font-size: 12px; padding: 4px 10px; }
 }
 </style>
