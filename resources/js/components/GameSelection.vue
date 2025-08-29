@@ -54,13 +54,7 @@ export default {
     return {
       games: [
         {
-         /*todo: game đầu tiên cho vào đường dẫn /user-kid/game/puzzle-challenge và tạo component PuzzleChallenge.vue trong thư mục components
-            trò chơi này là trò chơi ghép hình đơn giản, có thể sử dụng thư viện như jigsaw-puzzle để tạo trò chơi này
-            phương thức chơi: người chơi sẽ kéo và thả các mảnh ghép vào đúng vị trí để hoàn thành bức tranh
-            điểm: hoàn thành bức tranh trong thời gian ngắn nhất sẽ được điểm cao hơn
-            phần thưởng: hoàn thành bức tranh sẽ nhận được huy hiệu "Puzzle Master"
-      yêu cầu giao diện mobile và desktop
-      */
+
           id: 1,
           name: 'Puzzle Challenge',
           description: 'Trò chơi ghép hình trí tuệ giúp phát triển tư duy logic',
@@ -71,7 +65,7 @@ export default {
         {
           id: 2,
           name: 'Math Adventure',
-          description: 'Khám phá thế giới toán học qua các thử thách thú vị',
+          description: 'Blocks nhiều màu rơi xuống chứa phép tính + - × ÷ đúng hoặc sai. Chọn kết quả đúng để ghi điểm, sai bị trừ điểm. Điều chỉnh độ khó & thời gian.',
           image: 'https://placehold.co/400x300/3F51B5/FFFFFF?text=Math+Adventure',
           rating: 4.5,
           players: '1.5k+'
@@ -138,10 +132,10 @@ export default {
   methods: {
     selectGame(game) {
       if (game.id === 1) {
-        // Navigate to Puzzle Challenge game
         this.$router.push('/user-kid/game/puzzle-challenge');
+      } else if (game.id === 2) {
+        this.$router.push('/user-kid/game/math-adventure');
       } else {
-        // For other games, show placeholder message for now
         alert(`Bạn đã chọn trò chơi: ${game.name}. Chức năng này sẽ được phát triển trong phiên bản tới!`);
       }
     }

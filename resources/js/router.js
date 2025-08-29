@@ -7,6 +7,7 @@ import KidDashboard from './components/KidDashboard.vue';
 import Homepage from './components/Homepage.vue';
 import GameSelection from './components/GameSelection.vue';
 import PuzzleChallenge from './components/PuzzleChallenge.vue';
+import MathAdventure from './components/MathAdventure.vue';
 
 const routes = [
   {
@@ -46,6 +47,12 @@ const routes = [
     path: '/user-kid/game/puzzle-challenge',
     name: 'PuzzleChallenge',
     component: PuzzleChallenge,
+    meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/user-kid/game/math-adventure',
+    name: 'MathAdventure',
+    component: MathAdventure,
     meta: { requiresAuth: true, requiresKid: true }
   }
 
