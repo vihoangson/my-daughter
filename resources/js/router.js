@@ -8,6 +8,7 @@ import Homepage from './components/Homepage.vue';
 import GameSelection from './components/GameSelection.vue';
 import PuzzleChallenge from './components/PuzzleChallenge.vue';
 import MathAdventure from './components/MathAdventure.vue';
+import MemoryMatch from './components/MemoryMatch.vue';
 
 const routes = [
   {
@@ -53,6 +54,12 @@ const routes = [
     path: '/user-kid/game/math-adventure',
     name: 'MathAdventure',
     component: MathAdventure,
+    meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/user-kid/game/memory-match',
+    name: 'MemoryMatch',
+    component: MemoryMatch,
     meta: { requiresAuth: true, requiresKid: true }
   }
 

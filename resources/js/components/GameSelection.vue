@@ -70,6 +70,7 @@ export default {
           rating: 4.5,
           players: '1.5k+'
         },
+
         {
           id: 3,
           name: 'Memory Match',
@@ -135,6 +136,8 @@ export default {
         this.$router.push('/user-kid/game/puzzle-challenge');
       } else if (game.id === 2) {
         this.$router.push('/user-kid/game/math-adventure');
+      } else if (game.id === 3) {
+        this.$router.push('/user-kid/game/memory-match');
       } else {
         alert(`Bạn đã chọn trò chơi: ${game.name}. Chức năng này sẽ được phát triển trong phiên bản tới!`);
       }
