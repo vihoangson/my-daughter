@@ -2,7 +2,7 @@
   <div class="game-container">
     <div v-if="!gameStarted" class="start-screen">
       <h2>Simple Ball Game</h2>
-      <p>Di chuyển bóng bằng cách rê chuột (hover) hoặc chạm giữ rồi kéo (touch drag) để định hướng!</p>
+      <p>Di chuyển: rê chuột để bay theo hướng con trỏ (desktop) hoặc chạm giữ rồi kéo như joystick ảo ở bất kỳ vị trí nào (mobile / touch).</p>
       <button @click="startGame" class="start-button">Start Game</button>
     </div>
     <div v-if="gameOver" class="game-over">
@@ -29,7 +29,6 @@ export default {
       gameStarted: false,
       gameOver: false,
       gameConfig: null,
-      resizeHandler: null,
     }
   },
   mounted() {
@@ -39,15 +38,21 @@ export default {
     if (this.game) {
       this.game.destroy(true);
     }
-    if (this.resizeHandler) window.removeEventListener('resize', this.resizeHandler);
   },
   methods: {
     initializeGame() {
       const self = this;
 
+      // Define a custom scene class
       class GameScene extends Phaser.Scene {
-        constructor() { super({ key: 'GameScene' }); }
-        preload() {}
+        constructor() {
+          super({ key: 'GameScene' });
+        }
+
+        preload() {
+          // We don't need to load images for simple shapes
+        }
+
         create() {
           this.vueComponent = self;
 
@@ -63,18 +68,112 @@ export default {
           this.stars = this.physics.add.group();
           for (let i = 0; i < 5; i++) this.createStar();
 
-          // Pointer state (existing logic kept)
-          this.pointerActive = false;
-          this.moveDir = { x: 0, y: 0 };
-          const computeDirection = (pointer) => {
+          // Virtual joystick (touch / mouse hold if desired)
+          this.joystick = {
+            active: false,
+            pointerId: null,
+            origin: { x: 0, y: 0 },
+            dir: { x: 0, y: 0 },
+            dist: 0,
+            base: this.add.circle(0, 0, 50, 0xffffff, 0.12).setVisible(false).setDepth(9999),
+            knob: this.add.circle(0, 0, 25, 0xffffff, 0.35).setVisible(false).setDepth(10000),
+            maxRadius: 50,
+            deadZone: 8
+          };
+
+          // Mouse hover movement (no click)
+          this.mouseMoveActive = false;
+          this.mouseDir = { x: 0, y: 0 };
+          this.mouseSpeed = 220;
+
+          const updateMouseDirection = (pointer) => {
             const dx = pointer.worldX - this.player.x;
             const dy = pointer.worldY - this.player.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist > 6) { this.moveDir.x = dx / dist; this.moveDir.y = dy / dist; }
+            const len = Math.sqrt(dx*dx + dy*dy);
+            if (len > 4) {
+              this.mouseDir.x = dx / len;
+              this.mouseDir.y = dy / len;
+              this.mouseMoveActive = true;
+            } else {
+              this.mouseMoveActive = false;
+            }
           };
-          this.input.on('pointermove', (p) => { this.pointerActive = true; computeDirection(p); });
-          this.input.on('pointerdown', (p) => { this.pointerActive = true; computeDirection(p); });
-          this.input.on('pointerup', () => { this.pointerActive = false; this.player.body.setVelocity(0,0); this.moveDir.x = 0; this.moveDir.y = 0; });
+
+          const engageJoystick = (pointer) => {
+            // Skip joystick for pure mouse hover usage unless button is pressed and we want joystick style; only use for touch
+            if (pointer.pointerType === 'mouse' && !pointer.isDown) return;
+            if (this.joystick.active && this.joystick.pointerId !== pointer.id) return;
+            this.joystick.active = true;
+            this.joystick.pointerId = pointer.id;
+            this.joystick.origin.x = pointer.worldX;
+            this.joystick.origin.y = pointer.worldY;
+            this.joystick.base.setPosition(pointer.worldX, pointer.worldY).setVisible(true);
+            this.joystick.knob.setPosition(pointer.worldX, pointer.worldY).setVisible(true);
+            this.joystick.dir.x = 0; this.joystick.dir.y = 0; this.joystick.dist = 0;
+            // Disable mouse movement while joystick active
+            this.mouseMoveActive = false;
+          };
+
+          const moveJoystick = (pointer) => {
+            if (!this.joystick.active || this.joystick.pointerId !== pointer.id) return;
+            const dx = pointer.worldX - this.joystick.origin.x;
+            const dy = pointer.worldY - this.joystick.origin.y;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            const maxR = this.joystick.maxRadius;
+            let clampedX = dx;
+            let clampedY = dy;
+            if (dist > maxR) {
+              clampedX = dx / dist * maxR;
+              clampedY = dy / dist * maxR;
+              dist = maxR;
+            }
+            this.joystick.knob.setPosition(this.joystick.origin.x + clampedX, this.joystick.origin.y + clampedY);
+            this.joystick.dist = dist;
+            if (dist > this.joystick.deadZone) {
+              this.joystick.dir.x = clampedX / maxR;
+              this.joystick.dir.y = clampedY / maxR;
+            } else {
+              this.joystick.dir.x = 0;
+              this.joystick.dir.y = 0;
+            }
+          };
+
+          const releaseJoystick = (pointer) => {
+            if (this.joystick.pointerId !== pointer.id) return;
+            this.joystick.active = false;
+            this.joystick.pointerId = null;
+            this.joystick.dir.x = 0; this.joystick.dir.y = 0; this.joystick.dist = 0;
+            this.joystick.base.setVisible(false);
+            this.joystick.knob.setVisible(false);
+            this.player.body.setVelocity(0, 0);
+          };
+
+          // Input events
+          this.input.on('pointerdown', (p) => {
+            if (p.pointerType === 'mouse' && !p.isDown) return;
+            engageJoystick(p);
+          });
+
+          this.input.on('pointermove', (p) => {
+            if (this.joystick.active && p.id === this.joystick.pointerId) {
+              moveJoystick(p);
+            } else if (p.pointerType === 'mouse' && !p.isDown) {
+              // Only if joystick not active
+              if (!this.joystick.active) updateMouseDirection(p);
+            }
+          });
+
+          this.input.on('pointerup', (p) => {
+            releaseJoystick(p);
+            if (p.pointerType === 'mouse') this.mouseMoveActive = false;
+          });
+          this.input.on('pointerupoutside', (p) => {
+            releaseJoystick(p);
+            if (p.pointerType === 'mouse') this.mouseMoveActive = false;
+          });
+          this.input.on('pointerout', (p) => {
+            if (p.pointerType === 'mouse') this.mouseMoveActive = false;
+          });
 
           this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
           // Periodic star creation
@@ -82,36 +181,60 @@ export default {
 
           // Handle resize
           this.scale.on('resize', (gameSize) => {
-            // Update world bounds to new size
             this.physics.world.setBounds(0, 0, gameSize.width, gameSize.height);
-            // Clamp player inside new bounds
             this.player.x = Phaser.Math.Clamp(this.player.x, 0 + this.player.radius, gameSize.width - this.player.radius);
             this.player.y = Phaser.Math.Clamp(this.player.y, 0 + this.player.radius, gameSize.height - this.player.radius);
+            if (this.joystick.active) {
+              this.joystick.base.setVisible(false);
+              this.joystick.knob.setVisible(false);
+              this.joystick.active = false;
+              this.player.body.setVelocity(0, 0);
+            }
+            this.mouseMoveActive = false;
           });
         }
         update() {
-          if (this.pointerActive) {
-            const speed = 200;
-            this.player.body.setVelocity(this.moveDir.x * speed, this.moveDir.y * speed);
+          if (this.joystick && this.joystick.active) {
+            const speed = 250;
+            const ratio = Phaser.Math.Clamp(this.joystick.dist / this.joystick.maxRadius, 0, 1);
+            this.player.body.setVelocity(this.joystick.dir.x * speed * ratio, this.joystick.dir.y * speed * ratio);
+          } else if (this.mouseMoveActive) {
+            this.player.body.setVelocity(this.mouseDir.x * this.mouseSpeed, this.mouseDir.y * this.mouseSpeed);
           } else {
-            this.player.body.setVelocity(0,0);
+            this.player.body.setVelocity(0, 0);
           }
         }
+
         createStar() {
+          const margin = 50;
           const w = this.scale.width;
           const h = this.scale.height;
-          const margin = 50;
           const x = Phaser.Math.Between(margin, Math.max(margin, w - margin));
           const y = Phaser.Math.Between(margin, Math.max(margin, h - margin));
           const star = this.add.star(x, y, 5, 10, 20, 0xffff00);
           this.physics.add.existing(star);
           this.stars.add(star);
-          this.time.delayedCall(5000, () => { if (star.active) star.destroy(); });
+
+          // Make star disappear after 5 seconds if not collected
+          this.time.delayedCall(5000, () => {
+            if (star.active) {
+              star.destroy();
+            }
+          });
         }
+
         collectStar(player, star) {
           star.destroy();
           this.vueComponent.score += 10;
-          this.tweens.add({ targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 1 });
+
+          // Simple visual feedback - make player flash
+          this.tweens.add({
+            targets: this.player,
+            alpha: 0.5,
+            duration: 100,
+            yoyo: true,
+            repeat: 1
+          });
         }
       }
 
@@ -120,10 +243,13 @@ export default {
         width: 800,
         height: 600,
         parent: 'phaser-game',
-        backgroundColor: '#000000',
-        // Manual control of resize; we will call game.scale.resize()
-        scale: { mode: Phaser.Scale.NONE, autoCenter: Phaser.Scale.NO_CENTER },
-        physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 0 },
+            debug: false
+          }
+        },
         scene: GameScene
       };
     },
@@ -137,58 +263,36 @@ export default {
       }
 
       this.game = new Phaser.Game(this.gameConfig);
-      // Delay adjust to ensure canvas appended
-      setTimeout(() => {
-        this.adjustGameSize();
-        // Attach resize listener once
-        if (!this.resizeHandler) {
-          this.resizeHandler = () => this.adjustGameSize();
-          window.addEventListener('resize', this.resizeHandler);
-        }
-      }, 0);
     },
-    adjustGameSize() {
-      if (!this.game) return;
-      const appEl = document.getElementById('app');
-      if (!appEl) return;
-      const aspectW = 800, aspectH = 600; // base ratio 4:3
-      let maxWidth = appEl.clientWidth;
-      if (maxWidth <= 0) return;
-      let width = maxWidth;
-      let height = Math.round(width * aspectH / aspectW);
-      const viewportH = window.innerHeight;
-      // If height exceeds viewport, reduce width to fit height
-      if (height > viewportH) {
-        height = viewportH;
-        width = Math.round(height * aspectW / aspectH);
-      }
-      // Apply resize
-      this.game.scale.resize(width, height);
-      // Update physics world & clamp player
-      const scene = this.game.scene.keys['GameScene'];
-      if (scene) {
-        if (scene.physics && scene.physics.world) {
-          scene.physics.world.setBounds(0, 0, width, height);
-        }
-        if (scene.player) {
-          scene.player.x = Phaser.Math.Clamp(scene.player.x, scene.player.radius, width - scene.player.radius);
-          scene.player.y = Phaser.Math.Clamp(scene.player.y, scene.player.radius, height - scene.player.radius);
-        }
-      }
+    endGame() {
+      this.gameOver = true;
+      this.gameStarted = false;
     }
   }
 }
 </script>
 
 <style scoped>
-.game-container { width:100%; height:auto; position:relative; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-#phaser-game { width:100%; } /* height controlled via canvas resize */
-#phaser-game canvas { display:block; width:100% !important; height:auto !important; }
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+}
+
+#phaser-game {
+  border: 3px solid #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
 
 .score-display {
   position: absolute;
-  top: 10px;
-  right: 15px;
+  top: 20px;
+  right: 20px;
   background: rgba(255, 255, 255, 0.9);
   padding: 10px 20px;
   border-radius: 20px;
@@ -242,11 +346,5 @@ export default {
   transform: translateY(-2px);
   box-shadow: 0 7px 20px rgba(0, 0, 0, 0.4);
   background: linear-gradient(45deg, #ee5a24, #ff6b6b);
-}
-
-@media (max-width: 600px) {
-  .score-display { left:50%; right:auto; transform:translateX(-50%); font-size:16px; padding:6px 12px; }
-  .start-screen h2 { font-size: 2.2em; }
-  .start-screen p { font-size: 1em; }
 }
 </style>
