@@ -54,14 +54,14 @@
                 <div class="password-display mb-4">
                   <div class="password-dots d-flex justify-content-center gap-2 mb-3">
                     <div
-                      v-for="i in 6"
+                      v-for="i in 4"
                       :key="i"
                       class="password-dot"
                       :class="{ 'filled': password.length >= i }"
                     ></div>
                   </div>
                   <div class="text-center">
-                    <small class="text-muted">{{ password.length }}/6 số</small>
+                    <small class="text-muted">{{ password.length }}/4 số</small>
                   </div>
                 </div>
 
@@ -72,7 +72,7 @@
                       <button
                         @click="addNumber(number)"
                         class="btn btn-outline-secondary btn-lg w-100 keypad-btn"
-                        :disabled="password.length >= 6"
+                        :disabled="password.length >= 4"
                       >
                         {{ number }}
                       </button>
@@ -90,7 +90,7 @@
                       <button
                         @click="addNumber(0)"
                         class="btn btn-outline-secondary btn-lg w-100 keypad-btn"
-                        :disabled="password.length >= 6"
+                        :disabled="password.length >= 4"
                       >
                         0
                       </button>
@@ -112,7 +112,7 @@
                   <button
                     @click="login"
                     class="btn btn-primary btn-lg w-100 rounded-3"
-                    :disabled="password.length !== 6 || isLoading"
+                    :disabled="password.length !== 4 || isLoading"
                   >
                     <span v-if="isLoading">
                       <i class="fas fa-spinner fa-spin me-2"></i>Đang đăng nhập...
@@ -162,9 +162,14 @@ export default {
       this.errorMessage = ''
     },
     addNumber(number) {
-      if (this.password.length < 6) {
+      if (this.password.length < 4) {
         this.password += number.toString()
         this.errorMessage = ''
+
+        // Auto-submit when 4 digits are entered
+        if (this.password.length === 4) {
+          this.login()
+        }
       }
     },
     deleteLastNumber() {
@@ -178,8 +183,8 @@ export default {
       this.errorMessage = ''
     },
     async login() {
-      if (this.password.length !== 6) {
-        this.errorMessage = 'Vui lòng nhập đủ 6 số'
+      if (this.password.length !== 4) {
+        this.errorMessage = 'Vui lòng nhập đủ 4 số'
         return
       }
 
