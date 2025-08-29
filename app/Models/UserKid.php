@@ -18,4 +18,8 @@ class UserKid extends User {
     public function requests() {
         return $this->hasMany(KidRequest::class, 'child_id');
     }
+
+    public function acoinTransactions() {
+        return $this->hasMany(AcoinTransaction::class, 'kid_id');
+    }
 }

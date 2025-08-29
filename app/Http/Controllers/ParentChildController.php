@@ -3,8 +3,11 @@ namespace App\Http\Controllers;
 
 use App\Models\UserParents;
 use App\Models\UserKid;
+use App\Models\AcoinTransaction; // added
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage; // added
+use Illuminate\Support\Facades\Validator; // added
 
 class ParentChildController extends Controller
 {
@@ -105,9 +108,9 @@ class ParentChildController extends Controller
             // Delete old avatar if exists
             if($kid->avatar) {
                 try {
-                    \Storage::disk('s3_public')->delete($kid->avatar);
+                    Storage::disk('s3_public')->delete($kid->avatar);
                 } catch(\Throwable $e) {
-                    \Storage::delete($kid->avatar);
+                    Storage::delete($kid->avatar);
                 }
             }
 
@@ -116,7 +119,7 @@ class ParentChildController extends Controller
             $avatarPath = 'avatars/kids/' . time() . '_' . $avatarFile->getClientOriginalName();
 
             try {
-                \Storage::disk('s3_public')->put($avatarPath, file_get_contents($avatarFile));
+                Storage::disk('s3_public')->put($avatarPath, file_get_contents($avatarFile));
                 $kid->avatar = $avatarPath;
             } catch(\Throwable $e) {
                 $kid->avatar = $avatarFile->store('avatars/kids', 'public');
@@ -195,7 +198,7 @@ class ParentChildController extends Controller
         if(!$parent) return response()->json(['message'=>'Parent not found'], 404);
 
         // Validate basic fields first
-        $validator = \Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
@@ -210,7 +213,7 @@ class ParentChildController extends Controller
 
         // Only validate avatar if it's provided and is a file
         if ($request->hasFile('avatar')) {
-            $avatarValidator = \Validator::make($request->all(), [
+            $avatarValidator = Validator::make($request->all(), [
                 'avatar' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
@@ -231,7 +234,7 @@ class ParentChildController extends Controller
         if ($request->hasFile('avatar') && $request->file('avatar')->isValid()) {
             // Delete old avatar if exists
             if ($parent->avatar) {
-                \Storage::disk('public')->delete($parent->avatar);
+                Storage::disk('public')->delete($parent->avatar);
             }
 
             // Store new avatar
@@ -245,6 +248,63 @@ class ParentChildController extends Controller
             'message' => 'Profile updated successfully',
             'profile' => $parent,
             'avatar_url' => $parent->avatar ? asset('storage/' . $parent->avatar) : null
+        ]);
+    }
+
+    public function fundAcoin(Request $request, UserKid $kid)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
+
+        $parent = UserParents::find($user->id);
+        if(!$parent || !$parent->kids()->where('users.id',$kid->id)->exists()) {
+            return response()->json(['message'=>'Not related'], 403);
+        }
+
+        $data = $request->validate([
+            'amount' => 'required|integer|min:1|max:100000000' // cap to prevent overflow
+        ]);
+
+        $before = (int)$kid->acoin_balance;
+        $kid->acoin_balance = $before + $data['amount'];
+        $kid->save();
+
+        // log transaction
+        AcoinTransaction::create([
+            'kid_id' => $kid->id,
+            'parent_id' => $user->id,
+            'amount' => $data['amount'],
+            'type' => 'fund',
+            'description' => 'Nạp Acoin bởi phụ huynh',
+            'balance_after' => $kid->acoin_balance,
+        ]);
+
+        return response()->json([
+            'message' => 'Nạp Acoin thành công',
+            'kid_id' => $kid->id,
+            'balance_before' => $before,
+            'balance_after' => (int)$kid->acoin_balance,
+            'added' => (int)$data['amount']
+        ]);
+    }
+
+    public function acoinTransactions(Request $request, UserKid $kid)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'], 403);
+        $parent = UserParents::find($user->id);
+        if(!$parent || !$parent->kids()->where('users.id',$kid->id)->exists()) {
+            return response()->json(['message'=>'Not related'], 403);
+        }
+        $limit = (int) $request->query('limit', 100);
+        $transactions = AcoinTransaction::where('kid_id',$kid->id)
+            ->orderByDesc('id')
+            ->limit(min($limit, 500))
+            ->get();
+        return response()->json([
+            'kid_id' => $kid->id,
+            'balance' => (int)$kid->acoin_balance,
+            'transactions' => $transactions,
         ]);
     }
 }

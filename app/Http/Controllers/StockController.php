@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\{Stock, StockHolding, StockTrade, StockPrice, User};
+use App\Models\AcoinTransaction; // added
 use Illuminate\Support\Facades\DB;
 
 class StockController extends Controller
@@ -118,6 +119,15 @@ class StockController extends Controller
                 'total' => $cost,
                 'balance_after' => $lockedUser->acoin_balance,
             ]);
+            // log acoin transaction (spend)
+            AcoinTransaction::create([
+                'kid_id' => $lockedUser->id,
+                'parent_id' => null,
+                'amount' => -$cost,
+                'type' => 'trade_buy',
+                'description' => 'Mua cổ phiếu ' . $stock->code . ' x' . $qty,
+                'balance_after' => $lockedUser->acoin_balance,
+            ]);
         });
         return $this->returnState($user);
     }
@@ -158,6 +168,15 @@ class StockController extends Controller
                 'price' => $sellPrice,
                 'profit' => $realized,
                 'total' => $proceeds,
+                'balance_after' => $lockedUser->acoin_balance,
+            ]);
+            // log acoin transaction (gain)
+            AcoinTransaction::create([
+                'kid_id' => $lockedUser->id,
+                'parent_id' => null,
+                'amount' => $proceeds,
+                'type' => 'trade_sell',
+                'description' => 'Bán cổ phiếu ' . $stock->code . ' x' . $qty,
                 'balance_after' => $lockedUser->acoin_balance,
             ]);
         });

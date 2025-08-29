@@ -52,6 +52,10 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::post('kid/{kid}/points', [RewardPunishmentController::class, 'addPoints']);
         // Add route for kids/{kid}/points to handle the current client requests
         Route::post('kids/{kid}/points', [RewardPunishmentController::class, 'addPoints']);
+
+        // Acoin funding route
+        Route::post('kids/{kid}/acoin-fund', [ParentChildController::class, 'fundAcoin']);
+        Route::get('kids/{kid}/acoin-transactions', [ParentChildController::class, 'acoinTransactions']);
     });
 
     // Kid routes
