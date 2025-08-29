@@ -2,7 +2,7 @@
   <div class="game-container">
     <div v-if="!gameStarted" class="overlay-screen">
       <h2>Math Adventure</h2>
-      <p>Trò chơi giúp trẻ em học toán qua các thử thách vui nhộn. Chọn các khối có phép tính đúng để ghi điểm! Đúng +2 điểm, sai -1 điểm.</p>
+      <p>Trò chơi giúp trẻ em học toán (cộng / trừ lớp 3) trong phạm vi 0–100. Chọn các khối có phép tính đúng để ghi điểm! Đúng +2 điểm, sai -1 điểm. Không có kết quả âm.</p>
 
       <div class="settings mb-3">
         <label class="form-label fw-bold d-block mb-2">Chọn độ khó:</label>
@@ -214,42 +214,38 @@ export default {
       return palette[Phaser.Math.Between(0, palette.length - 1)];
     },
     generateExpression() {
-      // Determine operations & number range by difficulty
-      let operations, max;
-      if (this.level === 'easy') {
-        operations = ['+','-'];
-        max = 10;
-      } else if (this.level === 'medium') {
-        operations = ['+','-','*'];
-        max = 20;
-      } else { // hard
-        operations = ['+','-','*','/'];
-        max = 50;
-      }
-
+      // Grade 3 level: only addition & subtraction, numbers 0-100, no negative results, final result 0-100
+      const operations = ['+','-'];
       const op = operations[Math.floor(Math.random()*operations.length)];
-      let a = Phaser.Math.Between(1, max);
-      let b = Phaser.Math.Between(1, max);
-
-      // Avoid some awkward divisions to keep integer answers intended
-      if (op === '/') {
-        // create divisible
-        b = Phaser.Math.Between(1, Math.min(10, max));
-        a = b * Phaser.Math.Between(1, Math.floor(max / b));
+      let a, b;
+      if (op === '+') {
+        a = Phaser.Math.Between(0, 100);
+        b = Phaser.Math.Between(0, 100 - a); // ensures sum <= 100
+      } else { // '-'
+        a = Phaser.Math.Between(0, 100);
+        b = Phaser.Math.Between(0, a); // ensures a - b >= 0
       }
-
       const correctResult = this.evalOp(a, b, op);
+      const showCorrect = Math.random() < 0.5;
 
-      // Decide whether to present a correct or incorrect expression
-      const showCorrect = Math.random() < 0.5; // 50% chance
       let shownResult = correctResult;
       if (!showCorrect) {
-        // produce an incorrect result close to correct one
-        let delta = Phaser.Math.Between(1, 5);
-        if (Math.random() < 0.5) delta *= -1;
-        shownResult = correctResult + delta;
-        if (shownResult === correctResult) shownResult += 1; // ensure incorrect
+        // Try to find a different result within [0,100]
+        let candidate = correctResult;
+        for (let i = 0; i < 20; i++) {
+          const delta = Phaser.Math.Between(1, 15) * (Math.random() < 0.5 ? -1 : 1);
+          candidate = correctResult + delta;
+          if (candidate >= 0 && candidate <= 100 && candidate !== correctResult) {
+            shownResult = candidate;
+            break;
+          }
+        }
+        if (shownResult === correctResult) {
+          // Fallback adjust by +1 or -1 staying inside range
+            if (correctResult < 100) shownResult = correctResult + 1; else shownResult = correctResult - 1;
+        }
       }
+
       const expression = `${a} ${op} ${b} = ${shownResult}`;
       return { expression, isCorrect: showCorrect };
     },
