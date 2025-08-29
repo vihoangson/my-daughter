@@ -98,6 +98,26 @@ run_build_on_remote() {
         return 1
     fi
 
+    # Run Laravel migrations
+    print_message "Running database migrations..."
+    ssh ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_PATH} && php artisan migrate --force"
+
+    if [ $? -eq 0 ]; then
+        print_message "Database migrations completed successfully."
+    else
+        print_warning "Database migrations failed or nothing to migrate."
+    fi
+
+    # Clear Laravel caches
+    print_message "Clearing Laravel caches..."
+    ssh ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_PATH} && php artisan cache:clear && php artisan config:clear"
+
+    if [ $? -eq 0 ]; then
+        print_message "Laravel caches cleared successfully."
+    else
+        print_warning "Failed to clear Laravel caches."
+    fi
+
     # Restart Apache HTTP service
     print_message "Restarting Apache HTTP service..."
     ssh ${REMOTE_USER}@${REMOTE_HOST} "systemctl restart httpd"
