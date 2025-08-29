@@ -5,6 +5,7 @@ import SimpleLogin from './components/SimpleLogin.vue';
 import ParentDashboard from './components/ParentDashboard.vue';
 import KidDashboard from './components/KidDashboard.vue';
 import Homepage from './components/Homepage.vue';
+import GameSelection from './components/GameSelection.vue';
 
 const routes = [
   {
@@ -33,7 +34,14 @@ const routes = [
     name: 'KidDashboard',
     component: KidDashboard,
     meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/user-kid/game',
+    name: 'GameSelection',
+    component: GameSelection,
+    meta: { requiresAuth: true, requiresKid: true }
   }
+
 ];
 
 const router = createRouter({
@@ -76,7 +84,9 @@ router.beforeEach(async (to, from, next) => {
     }
 
     // Redirect kid users to the kid dashboard if they try to access other pages
-    if (window.currentUser.type === 'child' && to.path !== '/user-kid') {
+    if (window.currentUser.type === 'child' &&
+        to.path !== '/user-kid' &&
+        !to.path.startsWith('/user-kid/')) {
       next('/user-kid');
       return;
     }

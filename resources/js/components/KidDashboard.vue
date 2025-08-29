@@ -52,6 +52,11 @@
               <i class="fas fa-user-cog me-1"></i> Cài đặt hồ sơ
             </a>
           </li>
+          <li class="nav-item">
+            <router-link class="nav-link" to="/user-kid/game">
+              <i class="fas fa-gamepad me-1"></i> Trò chơi 1
+            </router-link>
+          </li>
         </ul>
       </div>
     </div>
