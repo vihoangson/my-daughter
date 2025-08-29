@@ -120,7 +120,7 @@ run_build_on_remote() {
 
     # Restart Apache HTTP service
     print_message "Restarting Apache HTTP service..."
-    # ssh ${REMOTE_USER}@${REMOTE_HOST} "systemctl restart httpd"
+    ssh ${REMOTE_USER}@${REMOTE_HOST} "systemctl restart httpd"
 
     if [ $? -eq 0 ]; then
         print_message "Apache HTTP service restarted successfully."

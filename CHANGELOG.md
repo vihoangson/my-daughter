@@ -2,6 +2,38 @@
 
 Tất cả những thay đổi đáng chú ý của dự án sẽ được ghi lại trong file này.
 
+## [v3.0.0] - 2025-08-29
+
+### Tính năng mới
+- **Giảm độ phức tạp cho mật khẩu số**: Giảm từ 6 xuống 4 số cho đăng nhập đơn giản
+- **Tự động đăng nhập**: Tự động submit khi nhập đủ 4 số mật khẩu
+- **Giới hạn đăng nhập sai**: Khóa tài khoản sau 5 lần đăng nhập sai trong 1 phút
+- **Đếm ngược thời gian khóa**: Hiển thị đếm ngược khi tài khoản bị khóa tạm thời
+- **Hệ thống Toast Message**: Thay thế alert JavaScript bằng Toast Message của Bootstrap
+- **Trang homepage giới thiệu**: Thêm trang homepage giới thiệu về ứng dụng
+
+### Cải tiến giao diện
+- **Phân biệt giao diện**: Nền hồng nhẹ cho màn hình trẻ em, nền xanh dương nhẹ cho màn hình phụ huynh
+- **Cải thiện UX**: Tab edit profile dễ tiếp cận hơn trong trang user-parent
+- **Tùy chỉnh đường dẫn**: Chuyển đường dẫn "/" sang "user-parent", "/" hiển thị trang homepage
+
+### Cải tiến hệ thống
+- **Tự động khởi động lại server**: Thêm lệnh restart httpd vào quy trình triển khai
+- **Tự động cập nhật database**: Thêm lệnh migrate vào quy trình triển khai
+- **Xóa cache tự động**: Thêm lệnh cache:clear và config:clear vào quy trình triển khai
+- **Tối ưu hoá validate**: Không bắt required cho trường avatar, chỉ lưu khi có
+
+### Sửa lỗi
+- **Vấn đề đường dẫn**: Sửa lỗi MethodNotAllowedHttpException cho API thêm điểm
+- **Khắc phục Toast Message**: Xử lý lỗi trong việc hiển thị thông báo
+- **Đồng bộ định tuyến**: Sửa lỗi không tìm thấy tệp Toast.vue từ KidDashboard
+
+### Thay đổi kỹ thuật
+- **Nâng cấp bảo mật**: Thêm cột login_attempts và locked_until vào bảng users
+- **Xử lý lỗi cải tiến**: Cung cấp thông báo lỗi cụ thể cho người dùng
+- **Cải thiện API**: Thêm các định tuyến API hỗ trợ cả kiểu singular và plural (kid/kids)
+- **Quản lý tài nguyên tốt hơn**: Sửa lỗi đường dẫn tài nguyên cho các file SVG
+
 ## [v2.0.0] - 2025-08-28
 
 ### Tính năng mới
