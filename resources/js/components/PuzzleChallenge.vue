@@ -2,7 +2,7 @@
   <div class="game-container">
     <div v-if="!gameStarted" class="start-screen">
       <h2>Simple Ball Game</h2>
-      <p>Use arrow keys to move the ball and collect stars!</p>
+      <p>Di chuyển bóng bằng cách rê chuột (hover) hoặc chạm giữ rồi kéo (touch drag) để định hướng!</p>
       <button @click="startGame" class="start-button">Start Game</button>
     </div>
     <div v-if="gameOver" class="game-over">
@@ -29,6 +29,7 @@ export default {
       gameStarted: false,
       gameOver: false,
       gameConfig: null,
+      resizeHandler: null,
     }
   },
   mounted() {
@@ -38,98 +39,79 @@ export default {
     if (this.game) {
       this.game.destroy(true);
     }
+    if (this.resizeHandler) window.removeEventListener('resize', this.resizeHandler);
   },
   methods: {
     initializeGame() {
       const self = this;
 
-      // Define a custom scene class
       class GameScene extends Phaser.Scene {
-        constructor() {
-          super({ key: 'GameScene' });
-        }
-
-        preload() {
-          // We don't need to load images for simple shapes
-        }
-
+        constructor() { super({ key: 'GameScene' }); }
+        preload() {}
         create() {
           this.vueComponent = self;
 
-          // Create player (blue circle)
-          this.player = this.add.circle(400, 300, 20, 0x0099ff);
+          // Center based on current size
+          const centerX = this.scale.width / 2;
+          const centerY = this.scale.height / 2;
+          this.player = this.add.circle(centerX, centerY, 20, 0x0099ff);
           this.physics.add.existing(this.player);
+          // Set world bounds to current viewport size
+          this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
           this.player.body.setCollideWorldBounds(true);
 
-          // Create stars group
           this.stars = this.physics.add.group();
+          for (let i = 0; i < 5; i++) this.createStar();
 
-          // Create initial stars
-          for (let i = 0; i < 5; i++) {
-            this.createStar();
-          }
+          // Pointer state (existing logic kept)
+          this.pointerActive = false;
+          this.moveDir = { x: 0, y: 0 };
+          const computeDirection = (pointer) => {
+            const dx = pointer.worldX - this.player.x;
+            const dy = pointer.worldY - this.player.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 6) { this.moveDir.x = dx / dist; this.moveDir.y = dy / dist; }
+          };
+          this.input.on('pointermove', (p) => { this.pointerActive = true; computeDirection(p); });
+          this.input.on('pointerdown', (p) => { this.pointerActive = true; computeDirection(p); });
+          this.input.on('pointerup', () => { this.pointerActive = false; this.player.body.setVelocity(0,0); this.moveDir.x = 0; this.moveDir.y = 0; });
 
-          // Set up cursor keys
-          this.cursors = this.input.keyboard.createCursorKeys();
-
-          // Collision between player and stars
           this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
+          // Periodic star creation
+          this.time.addEvent({ delay: 2000, callback: this.createStar, callbackScope: this, loop: true });
 
-          // Timer to create new stars
-          this.starTimer = this.time.addEvent({
-            delay: 2000,
-            callback: this.createStar,
-            callbackScope: this,
-            loop: true
+          // Handle resize
+          this.scale.on('resize', (gameSize) => {
+            // Update world bounds to new size
+            this.physics.world.setBounds(0, 0, gameSize.width, gameSize.height);
+            // Clamp player inside new bounds
+            this.player.x = Phaser.Math.Clamp(this.player.x, 0 + this.player.radius, gameSize.width - this.player.radius);
+            this.player.y = Phaser.Math.Clamp(this.player.y, 0 + this.player.radius, gameSize.height - this.player.radius);
           });
         }
-
         update() {
-          // Player movement
-          if (this.cursors.left.isDown) {
-            this.player.body.setVelocityX(-200);
-          } else if (this.cursors.right.isDown) {
-            this.player.body.setVelocityX(200);
+          if (this.pointerActive) {
+            const speed = 200;
+            this.player.body.setVelocity(this.moveDir.x * speed, this.moveDir.y * speed);
           } else {
-            this.player.body.setVelocityX(0);
-          }
-
-          if (this.cursors.up.isDown) {
-            this.player.body.setVelocityY(-200);
-          } else if (this.cursors.down.isDown) {
-            this.player.body.setVelocityY(200);
-          } else {
-            this.player.body.setVelocityY(0);
+            this.player.body.setVelocity(0,0);
           }
         }
-
         createStar() {
-          const x = Phaser.Math.Between(50, 750);
-          const y = Phaser.Math.Between(50, 550);
+          const w = this.scale.width;
+          const h = this.scale.height;
+          const margin = 50;
+          const x = Phaser.Math.Between(margin, Math.max(margin, w - margin));
+          const y = Phaser.Math.Between(margin, Math.max(margin, h - margin));
           const star = this.add.star(x, y, 5, 10, 20, 0xffff00);
           this.physics.add.existing(star);
           this.stars.add(star);
-
-          // Make star disappear after 5 seconds if not collected
-          this.time.delayedCall(5000, () => {
-            if (star.active) {
-              star.destroy();
-            }
-          });
+          this.time.delayedCall(5000, () => { if (star.active) star.destroy(); });
         }
-
         collectStar(player, star) {
           star.destroy();
           this.vueComponent.score += 10;
-
-          // Simple visual feedback - make player flash
-          this.tweens.add({
-            targets: this.player,
-            alpha: 0.5,
-            duration: 100,
-            yoyo: true,
-            repeat: 1
-          });
+          this.tweens.add({ targets: this.player, alpha: 0.5, duration: 100, yoyo: true, repeat: 1 });
         }
       }
 
@@ -138,13 +120,10 @@ export default {
         width: 800,
         height: 600,
         parent: 'phaser-game',
-        physics: {
-          default: 'arcade',
-          arcade: {
-            gravity: { y: 0 },
-            debug: false
-          }
-        },
+        backgroundColor: '#000000',
+        // Manual control of resize; we will call game.scale.resize()
+        scale: { mode: Phaser.Scale.NONE, autoCenter: Phaser.Scale.NO_CENTER },
+        physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
         scene: GameScene
       };
     },
@@ -158,36 +137,58 @@ export default {
       }
 
       this.game = new Phaser.Game(this.gameConfig);
+      // Delay adjust to ensure canvas appended
+      setTimeout(() => {
+        this.adjustGameSize();
+        // Attach resize listener once
+        if (!this.resizeHandler) {
+          this.resizeHandler = () => this.adjustGameSize();
+          window.addEventListener('resize', this.resizeHandler);
+        }
+      }, 0);
     },
-    endGame() {
-      this.gameOver = true;
-      this.gameStarted = false;
+    adjustGameSize() {
+      if (!this.game) return;
+      const appEl = document.getElementById('app');
+      if (!appEl) return;
+      const aspectW = 800, aspectH = 600; // base ratio 4:3
+      let maxWidth = appEl.clientWidth;
+      if (maxWidth <= 0) return;
+      let width = maxWidth;
+      let height = Math.round(width * aspectH / aspectW);
+      const viewportH = window.innerHeight;
+      // If height exceeds viewport, reduce width to fit height
+      if (height > viewportH) {
+        height = viewportH;
+        width = Math.round(height * aspectW / aspectH);
+      }
+      // Apply resize
+      this.game.scale.resize(width, height);
+      // Update physics world & clamp player
+      const scene = this.game.scene.keys['GameScene'];
+      if (scene) {
+        if (scene.physics && scene.physics.world) {
+          scene.physics.world.setBounds(0, 0, width, height);
+        }
+        if (scene.player) {
+          scene.player.x = Phaser.Math.Clamp(scene.player.x, scene.player.radius, width - scene.player.radius);
+          scene.player.y = Phaser.Math.Clamp(scene.player.y, scene.player.radius, height - scene.player.radius);
+        }
+      }
     }
   }
 }
 </script>
 
 <style scoped>
-.game-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: relative;
-}
-
-#phaser-game {
-  border: 3px solid #fff;
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
+.game-container { width:100%; height:auto; position:relative; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+#phaser-game { width:100%; } /* height controlled via canvas resize */
+#phaser-game canvas { display:block; width:100% !important; height:auto !important; }
 
 .score-display {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 10px;
+  right: 15px;
   background: rgba(255, 255, 255, 0.9);
   padding: 10px 20px;
   border-radius: 20px;
@@ -241,5 +242,11 @@ export default {
   transform: translateY(-2px);
   box-shadow: 0 7px 20px rgba(0, 0, 0, 0.4);
   background: linear-gradient(45deg, #ee5a24, #ff6b6b);
+}
+
+@media (max-width: 600px) {
+  .score-display { left:50%; right:auto; transform:translateX(-50%); font-size:16px; padding:6px 12px; }
+  .start-screen h2 { font-size: 2.2em; }
+  .start-screen p { font-size: 1em; }
 }
 </style>
