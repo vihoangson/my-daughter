@@ -69,11 +69,16 @@ onMounted(async () => {
       window.currentUser = response.data;
       currentUser.value = response.data;
 
-      // Redirect to appropriate dashboard
+      const currentPath = router.currentRoute.value.path;
       if (response.data.type === 'child') {
-        router.push('/user-kid');
+        // Only redirect if on root or login, otherwise keep deep route (e.g., /user-kid/game/math-adventure)
+        if (currentPath === '/' || currentPath === '/login') {
+          router.push('/user-kid');
+        }
       } else {
-        router.push('/');
+        if (currentPath === '/' || currentPath === '/login') {
+          router.push('/user-parent');
+        }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -84,12 +89,12 @@ onMounted(async () => {
   } else if (token && window.currentUser) {
     currentUser.value = window.currentUser;
 
-    // Redirect to appropriate dashboard if on login page
+    // Redirect to appropriate dashboard if on login page only (preserve deep links)
     if (router.currentRoute.value.path === '/login') {
       if (window.currentUser.type === 'child') {
         router.push('/user-kid');
       } else {
-        router.push('/');
+        router.push('/user-parent');
       }
     }
   } else if (!token) {

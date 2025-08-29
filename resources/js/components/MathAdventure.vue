@@ -2,7 +2,8 @@
   <div class="game-container">
     <div v-if="!gameStarted" class="overlay-screen">
       <h2>Math Adventure</h2>
-      <p>Trò chơi giúp trẻ em học toán (cộng / trừ lớp 3) trong phạm vi 0–100. Chọn các khối có phép tính đúng để ghi điểm! Đúng +2 điểm, sai -1 điểm. Không có kết quả âm.</p>
+      <!-- Updated instruction text to reflect new ranges per difficulty -->
+      <p>Phép tính cộng / trừ theo độ khó: Dễ (0–20), Trung bình (0–30), Khó (0–40). Chọn khối có phép tính đúng: đúng +2, sai -1.</p>
 
       <div class="settings mb-3">
         <label class="form-label fw-bold d-block mb-2">Chọn độ khó:</label>
@@ -18,6 +19,13 @@
         <div class="mt-3">
           <label class="form-label mb-1">Thời lượng (giây)</label>
           <input type="number" min="30" max="300" step="15" class="form-control w-auto d-inline-block ms-2" v-model.number="duration" />
+        </div>
+        <div class="mt-3 text-start" style="max-width:420px;">
+          <label class="form-label mb-1 d-flex justify-content-between">
+            <span>Tốc độ rơi ({{ fallSpeed }} px/s)</span>
+            <small class="text-muted">20 - 300</small>
+          </label>
+          <input type="range" min="20" max="300" step="10" v-model.number="fallSpeed" class="form-range" />
         </div>
       </div>
 
@@ -41,6 +49,17 @@
       <div>Đúng/Sai: <strong>{{ correctClicks }}/{{ wrongClicks }}</strong></div>
       <div>Chính xác: <strong>{{ accuracy }}%</strong></div>
     </div>
+    <div v-if="gameStarted && !gameOver" class="control-bar">
+      <button class="btn btn-sm btn-warning me-2" @click="togglePause">
+        <i :class="isPaused ? 'fas fa-play' : 'fas fa-pause'"></i>
+        {{ isPaused ? 'Tiếp tục' : 'Tạm dừng' }}
+      </button>
+      <button class="btn btn-sm btn-info me-2" @click="replayGame">
+        <i class="fas fa-undo"></i> Chơi lại
+      </button>
+      <button class="btn btn-sm btn-secondary" @click="endGame">Kết thúc
+      </button>
+    </div>
   </div>
 </template>
 
@@ -61,10 +80,12 @@ export default {
       correctClicks: 0,
       wrongClicks: 0,
       spawnTimer: null,
+      fallSpeed: 120,
+      isPaused: false,
       difficulties: [
-        { value: 'easy', label: 'Dễ' },
-        { value: 'medium', label: 'Trung bình' },
-        { value: 'hard', label: 'Khó' }
+        { value: 'easy', valueInternal: 'easy', label: 'Dễ' },
+        { value: 'middle', valueInternal: 'middle', label: 'Trung bình' },
+        { value: 'hard', valueInternal: 'hard', label: 'Khó' }
       ],
       gameConfig: null
     };
@@ -167,14 +188,27 @@ export default {
       this.timeLeft = this.duration;
       this.gameOver = false;
       this.gameStarted = true;
+      this.isPaused = false;
 
       this.game = new Phaser.Game(this.gameConfig);
 
       this.startTimer();
     },
+    replayGame() {
+      this.startGame();
+    },
+    togglePause() {
+      if (!this.game || this.gameOver) return;
+      this.isPaused = !this.isPaused;
+      const scene = this.game.scene.getScene('MathScene');
+      if (scene) {
+        if (this.isPaused) scene.scene.pause(); else scene.scene.resume();
+      }
+    },
     startTimer() {
       const interval = setInterval(() => {
         if (!this.gameStarted || this.gameOver) { clearInterval(interval); return; }
+        if (this.isPaused) return; // don't decrement while paused
         this.timeLeft--;
         if (this.timeLeft <= 0) {
           this.endGame();
@@ -185,6 +219,7 @@ export default {
     endGame() {
       this.gameOver = true;
       this.gameStarted = false;
+      this.isPaused = false;
       this.destroyGame();
     },
     destroyGame() {
@@ -196,56 +231,46 @@ export default {
     getSpawnInterval() {
       switch (this.level) {
         case 'easy': return Phaser.Math.Between(1200, 1600);
-        case 'medium': return Phaser.Math.Between(800, 1200);
+        case 'middle': return Phaser.Math.Between(800, 1200);
         case 'hard': return Phaser.Math.Between(500, 900);
       }
       return 1300;
     },
     getBlockSpeed() {
-      switch (this.level) {
-        case 'easy': return 90;
-        case 'medium': return 140;
-        case 'hard': return 200;
-      }
-      return 100;
+      return this.fallSpeed; // unchanged
     },
     getColor() {
       const palette = [0x1565c0, 0x2e7d32, 0xc62828, 0xf9a825];
       return palette[Phaser.Math.Between(0, palette.length - 1)];
     },
     generateExpression() {
-      // Grade 3 level: only addition & subtraction, numbers 0-100, no negative results, final result 0-100
+      // Difficulty-based max range
+      let max;
+      if (this.level === 'easy') max = 20; else if (this.level === 'middle') max = 30; else max = 40;
       const operations = ['+','-'];
       const op = operations[Math.floor(Math.random()*operations.length)];
       let a, b;
       if (op === '+') {
-        a = Phaser.Math.Between(0, 100);
-        b = Phaser.Math.Between(0, 100 - a); // ensures sum <= 100
+        a = Phaser.Math.Between(0, max);
+        b = Phaser.Math.Between(0, max - a); // ensures sum <= max
       } else { // '-'
-        a = Phaser.Math.Between(0, 100);
+        a = Phaser.Math.Between(0, max);
         b = Phaser.Math.Between(0, a); // ensures a - b >= 0
       }
       const correctResult = this.evalOp(a, b, op);
       const showCorrect = Math.random() < 0.5;
-
       let shownResult = correctResult;
       if (!showCorrect) {
-        // Try to find a different result within [0,100]
         let candidate = correctResult;
         for (let i = 0; i < 20; i++) {
-          const delta = Phaser.Math.Between(1, 15) * (Math.random() < 0.5 ? -1 : 1);
+          const delta = Phaser.Math.Between(1, Math.min(10, max)) * (Math.random() < 0.5 ? -1 : 1);
           candidate = correctResult + delta;
-          if (candidate >= 0 && candidate <= 100 && candidate !== correctResult) {
-            shownResult = candidate;
-            break;
-          }
+          if (candidate >= 0 && candidate <= max && candidate !== correctResult) { shownResult = candidate; break; }
         }
         if (shownResult === correctResult) {
-          // Fallback adjust by +1 or -1 staying inside range
-            if (correctResult < 100) shownResult = correctResult + 1; else shownResult = correctResult - 1;
+          if (correctResult < max) shownResult = correctResult + 1; else shownResult = correctResult - 1; // stay in range
         }
       }
-
       const expression = `${a} ${op} ${b} = ${shownResult}`;
       return { expression, isCorrect: showCorrect };
     },
@@ -298,6 +323,14 @@ export default {
   font-size: 14px;
   backdrop-filter: blur(4px);
   pointer-events: none;
+}
+.control-bar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  z-index: 10;
+  gap: 6px;
 }
 .overlay-screen {
   position: absolute;
