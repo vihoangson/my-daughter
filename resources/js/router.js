@@ -9,6 +9,7 @@ import GameSelection from './components/GameSelection.vue';
 import PuzzleChallenge from './components/PuzzleChallenge.vue';
 import MathAdventure from './components/MathAdventure.vue';
 import MemoryMatch from './components/MemoryMatch.vue';
+import MusicMaker from './components/MusicMaker.vue';
 
 const routes = [
   {
@@ -60,6 +61,12 @@ const routes = [
     path: '/user-kid/game/memory-match',
     name: 'MemoryMatch',
     component: MemoryMatch,
+    meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/user-kid/game/music-maker',
+    name: 'MusicMaker',
+    component: MusicMaker,
     meta: { requiresAuth: true, requiresKid: true }
   }
 
