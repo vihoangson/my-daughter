@@ -469,12 +469,119 @@
 
     <!-- Achievements Tab Content (placeholder) -->
     <div v-if="activeTab === 'achievements'">
-      <div class="card">
-        <div class="card-header bg-primary text-white">
-          <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Thành tích của bạn</h5>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Tổng quan thành tích</h5>
+            </div>
+            <div class="card-body">
+              <div v-if="achievementsLoading" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="small mt-2">Đang tải...</div>
+              </div>
+              <div v-else>
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between small mb-1">
+                    <span>Đã đạt: <strong>{{ achievementStats.achieved }}</strong>/<strong>{{ achievementStats.total }}</strong></span>
+                    <span>{{ achievementStats.percent }}%</span>
+                  </div>
+                  <div class="progress" style="height:10px;">
+                    <div class="progress-bar bg-success" :style="{width: achievementStats.percent + '%'}"></div>
+                  </div>
+                </div>
+                <ul class="list-group small">
+                  <li class="list-group-item d-flex justify-content-between align-items-center" v-for="(list, cat) in groupedAchievements" :key="cat">
+                    <span><i class="fas fa-folder-open me-2 text-secondary"></i>{{ cat }}</span>
+                    <span class="badge bg-success" v-if="list.filter(a=>a.achieved).length === list.length">Hoàn tất</span>
+                    <span class="badge bg-info" v-else>{{ list.filter(a=>a.achieved).length }}/{{ list.length }}</span>
+                  </li>
+                </ul>
+                <div class="mt-3 d-flex gap-2">
+                  <button class="btn btn-sm btn-outline-primary" @click="fetchKidAchievements" :disabled="achievementsLoading">
+                    <span v-if="achievementsLoading" class="spinner-border spinner-border-sm me-1"></span>
+                    Làm mới
+                  </button>
+                  <button class="btn btn-sm btn-outline-secondary" @click="showOnlyUnachieved = !showOnlyUnachieved" :disabled="!kidAchievements.length">
+                    {{ showOnlyUnachieved ? 'Hiện tất cả' : 'Chỉ chưa đạt' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="card-body text-muted small">
-          Tính năng đang được phát triển. Vui lòng quay lại sau.
+        <div class="col-md-8">
+          <div class="card h-100">
+            <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Danh sách thành tích</h5>
+              <div class="small" v-if="!achievementsLoading && kidAchievements.length">(Nhấp giữ chuột để xem ảnh lớn nếu có)</div>
+            </div>
+            <div class="card-body p-0">
+              <div v-if="achievementsLoading" class="p-4 text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="small mt-2">Đang tải...</div>
+              </div>
+              <div v-else-if="!kidAchievements.length" class="p-4 text-center text-muted small">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <div>Chưa có thành tích nào từ phụ huynh.</div>
+              </div>
+              <div v-else class="accordion" id="kidAchievementsAccordion">
+                <div class="accordion-item" v-for="(list, cat) in groupedAchievements" :key="cat" v-show="filteredCategoryVisible(list)">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" :data-bs-target="'#cat-'+slug(cat)">
+                      <span class="me-2"><i class="fas fa-folder-open text-secondary"></i></span>
+                      <strong class="me-2">{{ cat }}</strong>
+                      <span class="badge bg-success me-1" v-if="list.filter(a=>a.achieved).length === list.length">Hoàn tất</span>
+                      <span class="badge bg-info" v-else>{{ list.filter(a=>a.achieved).length }}/{{ list.length }}</span>
+                    </button>
+                  </h2>
+                  <div class="accordion-collapse collapse" :id="'cat-'+slug(cat)" data-bs-parent="#kidAchievementsAccordion">
+                    <div class="accordion-body p-0">
+                      <div class="list-group list-group-flush">
+                        <div class="list-group-item py-2" v-for="a in filteredAchievements(list)" :key="a.id">
+                          <div class="d-flex">
+                            <div class="me-3" style="width:56px;">
+                              <div v-if="a.image_url" class="ratio ratio-1x1 position-relative rounded overflow-hidden border" style="cursor: zoom-in;" @click="openImage(a.image_url)">
+                                <img :src="a.image_url" :alt="a.name" style="object-fit:cover;width:100%;height:100%;" />
+                                <span v-if="a.achieved" class="position-absolute top-0 start-0 bg-success text-white px-1 small" style="font-size:10px;">OK</span>
+                              </div>
+                              <div v-else class="bg-light border rounded d-flex align-items-center justify-content-center text-muted" style="width:56px;height:56px;font-size:10px;">
+                                <i class="fas fa-image"></i>
+                              </div>
+                            </div>
+                            <div class="flex-grow-1">
+                              <div class="d-flex justify-content-between align-items-start">
+                                <div class="fw-semibold">{{ a.name }}</div>
+                                <span class="badge" :class="a.achieved ? 'bg-success' : 'bg-secondary'">
+                                  {{ a.achieved ? 'ĐÃ ĐẠT' : 'CHƯA ĐẠT' }}
+                                </span>
+                              </div>
+                              <div class="small text-muted" v-if="a.note">{{ a.note }}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image preview modal -->
+      <div v-if="previewImage" class="modal d-block" style="background:rgba(0,0,0,0.7);">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Xem ảnh</h5>
+              <button type="button" class="btn-close" @click="previewImage=null"></button>
+            </div>
+            <div class="modal-body text-center">
+              <img :src="previewImage" alt="preview" class="img-fluid rounded" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -497,7 +604,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import RequestForm from './kid/RequestForm.vue';
@@ -864,9 +971,64 @@ const uploadAvatarImmediately = async (file) => {
   }
 };
 
-onMounted(() => {
-  fetchData();
+// Kid achievements state
+const kidAchievements = ref([]);
+const achievementsLoading = ref(false);
+const showOnlyUnachieved = ref(false);
+const previewImage = ref(null);
+
+const fetchKidAchievements = async () => {
+  achievementsLoading.value = true;
+  try {
+    const { data } = await axios.get('/api/kid/achievements');
+    kidAchievements.value = Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error('Load kid achievements failed', e);
+  } finally {
+    achievementsLoading.value = false;
+  }
+};
+
+watch(activeTab, (tab) => {
+  if (tab === 'achievements' && kidAchievements.value.length === 0 && !achievementsLoading.value) {
+    fetchKidAchievements();
+  }
 });
+
+const achievementStats = computed(() => {
+  const total = kidAchievements.value.length;
+  const achieved = kidAchievements.value.filter(a => a.achieved).length;
+  const percent = total ? Math.round(achieved * 100 / total) : 0;
+  return { total, achieved, percent };
+});
+
+const groupedAchievements = computed(() => {
+  const groups = {};
+  kidAchievements.value.forEach(a => {
+    const cat = a.category || 'Khác';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(a);
+  });
+  // sort categories alphabetically, but keep Vietnamese intuitive order maybe just by name
+  return groups; // Object with cat->array
+});
+
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+
+const filteredAchievements = (list) => {
+  if (!showOnlyUnachieved.value) return list;
+  return list.filter(a => !a.achieved);
+};
+
+const filteredCategoryVisible = (list) => {
+  if (!showOnlyUnachieved.value) return true;
+  return list.some(a => !a.achieved);
+};
+
+const openImage = (url) => { previewImage.value = url; };
+
+// Optionally prefetch on mount (keeps lazy load logic too)
+onMounted(() => { /* leave lazy load */ });
 </script>
 
 <style scoped>
