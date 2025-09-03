@@ -16,6 +16,10 @@ REMOTE_USER="root"
 REMOTE_HOST="oop.vn"
 REMOTE_PATH="/var/www/vhosts/my-daughter"
 
+# ssh ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_PATH} && git pull"
+# ssh root@oop.vn "cd /var/www/vhosts/my-daughter && php artisan migrate"
+# ssh root@oop.vn "cd /var/www/vhosts/my-daughter && php artisan db:seed"
+
 # Function to display messages
 print_message() {
     echo -e "${GREEN}[INFO]${NC} $1"

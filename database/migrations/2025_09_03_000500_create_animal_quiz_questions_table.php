@@ -10,7 +10,7 @@ return new class extends Migration {
             $table->string('difficulty', 20)->index();
             $table->string('topic', 100)->index();
             $table->text('text');
-            $table->json('options');
+            $table->longText('options');
             $table->unsignedTinyInteger('correct');
             $table->text('explanation')->nullable();
             $table->timestamps();
@@ -18,4 +18,3 @@ return new class extends Migration {
     }
     public function down(): void { Schema::dropIfExists('animal_quiz_questions'); }
 };
-
