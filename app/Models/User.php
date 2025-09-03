@@ -77,4 +77,17 @@ class User extends Authenticatable
     {
         return $this->hasMany(StockHolding::class);
     }
+
+    // Added: parent <-> kids pivot helpers so base User can access when type is parent/child
+    public function kids()
+    {
+        // For parent users: children managed
+        return $this->belongsToMany(UserKid::class, 'child_parent', 'parent_id', 'child_id')->withTimestamps();
+    }
+
+    public function parents()
+    {
+        // For child users: parent accounts
+        return $this->belongsToMany(UserParents::class, 'child_parent', 'child_id', 'parent_id')->withTimestamps();
+    }
 }

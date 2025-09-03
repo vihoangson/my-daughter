@@ -49,7 +49,7 @@
           </li>
           <li class="nav-item">
             <a class="nav-link" :class="{ active: activeTab === 'profile' }" href="#" @click.prevent="activeTab = 'profile'">
-              <i class="fas fa-user-cog me-1"></i> Cài đặt hồ sơ
+              <i class="fas fa-user-cog me-1"></i> Cài đặt hồ sơ 1
             </a>
           </li>
           <li class="nav-item">
@@ -60,6 +60,11 @@
           <li class="nav-item">
             <a class="nav-link" :class="{ active: activeTab === 'stocks' }" href="#" @click.prevent="activeTab = 'stocks'">
               <i class="fas fa-coins me-1"></i> Cổ phiếu
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" :class="{ active: activeTab === 'achievements' }" href="#" @click.prevent="activeTab = 'achievements'">
+              <i class="fas fa-trophy me-1"></i> Thành tích
             </a>
           </li>
         </ul>
@@ -460,6 +465,18 @@
     <!-- Stocks Tab Content -->
     <div v-if="activeTab === 'stocks'">
       <StockTrading />
+    </div>
+
+    <!-- Achievements Tab Content (placeholder) -->
+    <div v-if="activeTab === 'achievements'">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Thành tích của bạn</h5>
+        </div>
+        <div class="card-body text-muted small">
+          Tính năng đang được phát triển. Vui lòng quay lại sau.
+        </div>
+      </div>
     </div>
 
     <!-- Image Modal -->

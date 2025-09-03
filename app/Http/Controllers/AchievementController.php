@@ -48,7 +48,8 @@ class AchievementController extends Controller
         $achievement->category = $data['category'] ?? null;
         $achievement->note = $data['note'] ?? null;
         if($request->hasFile('image')){
-            $achievement->image_path = $request->file('image')->store('achievements','public');
+            $disk = array_key_exists('s3_public', config('filesystems.disks')) ? 's3_public' : 'public';
+            $achievement->image_path = $request->file('image')->store('achievements', $disk);
         }
         $achievement->save();
         return response()->json($achievement->fresh(), 201);
@@ -74,12 +75,24 @@ class AchievementController extends Controller
         if(array_key_exists('category',$data)) $achievement->category = $data['category'];
         if(array_key_exists('note',$data)) $achievement->note = $data['note'];
         if(!empty($data['remove_image']) && $achievement->image_path){
-            Storage::disk('public')->delete($achievement->image_path);
+            // try delete on both disks
+            foreach(['s3_public','public'] as $diskDel){
+                if(array_key_exists($diskDel, config('filesystems.disks'))){
+                    try { Storage::disk($diskDel)->delete($achievement->image_path); } catch(\Throwable $e) {}
+                }
+            }
             $achievement->image_path = null;
         }
         if($request->hasFile('image')){
-            if($achievement->image_path) Storage::disk('public')->delete($achievement->image_path);
-            $achievement->image_path = $request->file('image')->store('achievements','public');
+            if($achievement->image_path){
+                foreach(['s3_public','public'] as $diskDel){
+                    if(array_key_exists($diskDel, config('filesystems.disks'))){
+                        try { Storage::disk($diskDel)->delete($achievement->image_path); } catch(\Throwable $e) {}
+                    }
+                }
+            }
+            $disk = array_key_exists('s3_public', config('filesystems.disks')) ? 's3_public' : 'public';
+            $achievement->image_path = $request->file('image')->store('achievements', $disk);
         }
         $achievement->save();
         return $achievement->fresh();
@@ -95,7 +108,11 @@ class AchievementController extends Controller
             return response()->json(['message'=>'Forbidden'], 403);
         }
         if($achievement->image_path){
-            Storage::disk('public')->delete($achievement->image_path);
+            foreach(['s3_public','public'] as $diskDel){
+                if(array_key_exists($diskDel, config('filesystems.disks'))){
+                    try { Storage::disk($diskDel)->delete($achievement->image_path); } catch(\Throwable $e) {}
+                }
+            }
         }
         $achievement->delete();
         return response()->json(['message'=>'Deleted']);

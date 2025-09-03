@@ -124,11 +124,29 @@ const fetchAll = async () => {
   await Promise.all([fetchKids(), fetchAchievements()]);
 };
 
+const normalizeArray = (raw, primaryKey) => {
+  if (Array.isArray(raw)) return raw;
+  if (raw && primaryKey && Array.isArray(raw[primaryKey])) return raw[primaryKey];
+  return [];
+};
+
 const fetchKids = async () => {
-  try { const { data } = await axios.get('/api/parent/kids'); kids.value = data; } catch(e){}
+  try {
+    const { data } = await axios.get('/api/parent/kids');
+    kids.value = normalizeArray(data, 'kids');
+  } catch (e) {
+    console.error('fetchKids error', e);
+    kids.value = [];
+  }
 };
 const fetchAchievements = async () => {
-  try { const { data } = await axios.get('/api/parent/achievements'); achievements.value = data; } catch(e){}
+  try {
+    const { data } = await axios.get('/api/parent/achievements');
+    achievements.value = normalizeArray(data, 'achievements');
+  } catch (e) {
+    console.error('fetchAchievements error', e);
+    achievements.value = [];
+  }
 };
 
 const startCreate = () => { resetForm(); showForm.value=true; };
