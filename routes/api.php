@@ -8,6 +8,7 @@ use App\Http\Controllers\KidRequestController;
 use App\Http\Controllers\GameScoreController;
 use App\Http\Controllers\StockController; // added
 use App\Http\Controllers\AnimalQuizController; // added
+use App\Http\Controllers\AchievementController; // added
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,13 @@ Route::middleware('auth:sanctum')->group(function(){
         // Acoin funding route
         Route::post('kids/{kid}/acoin-fund', [ParentChildController::class, 'fundAcoin']);
         Route::get('kids/{kid}/acoin-transactions', [ParentChildController::class, 'acoinTransactions']);
+
+        // Achievement routes (parent)
+        Route::get('achievements', [AchievementController::class, 'parentIndex']);
+        Route::post('achievements', [AchievementController::class, 'store']);
+        Route::put('achievements/{achievement}', [AchievementController::class, 'update']);
+        Route::delete('achievements/{achievement}', [AchievementController::class, 'destroy']);
+        Route::post('achievements/{achievement}/toggle-kid/{kid}', [AchievementController::class, 'toggleKid']);
     });
 
     // Kid routes
@@ -86,6 +94,9 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('stocks/{stock}/prices', [StockController::class, 'prices']); // price history
         // Animal quiz
         Route::get('animal-quiz/questions', [AnimalQuizController::class, 'questions']);
+
+        // Kid achievements list
+        Route::get('achievements', [AchievementController::class, 'kidIndex']);
     });
 });
 

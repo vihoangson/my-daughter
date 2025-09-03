@@ -34,5 +34,6 @@ class DatabaseSeeder extends Seeder
 
         // Seed animal quiz questions
         $this->call(AnimalQuizQuestionSeeder::class);
+        $this->call(AchievementSeeder::class);
     }
 }

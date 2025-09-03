@@ -22,4 +22,7 @@ class UserParents extends User {
     public function handledRequests() {
         return $this->hasMany(KidRequest::class, 'parent_id');
     }
+    public function achievements(){
+        return $this->hasMany(Achievement::class, 'parent_id');
+    }
 }

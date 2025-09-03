@@ -22,4 +22,7 @@ class UserKid extends User {
     public function acoinTransactions() {
         return $this->hasMany(AcoinTransaction::class, 'kid_id');
     }
+    public function achievements() {
+        return $this->belongsToMany(Achievement::class, 'achievement_kid', 'kid_id', 'achievement_id')->withPivot('achieved_at')->withTimestamps();
+    }
 }
