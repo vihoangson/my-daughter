@@ -4,7 +4,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    public function up(): void {
+    public function up( ): void {
         Schema::create('achievement_kid', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('achievement_id');
