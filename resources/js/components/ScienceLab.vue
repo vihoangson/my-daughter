@@ -75,6 +75,8 @@ export default {
   data() {
     return {
       selectedPlanet: null,
+      orbitBase: 150, // increased base radius
+      orbitStep: 85,  // increased spacing between orbits
       planets: [
         {
           id: 1, name: 'Sao Thủy', english: 'Mercury', short: 'Thủy',
@@ -127,29 +129,38 @@ export default {
       ]
     }
   },
+  mounted() {
+    this.computeOrbitParams();
+    window.addEventListener('resize', this.computeOrbitParams);
+  },
+  beforeUnmount() { window.removeEventListener('resize', this.computeOrbitParams); },
   methods: {
     selectPlanet(planet) {
       this.selectedPlanet = planet;
     },
     resetSelection() { this.selectedPlanet = null; },
     formatNumber(n) { return n.toLocaleString('vi-VN'); },
+    computeOrbitParams() {
+      const min = Math.min(window.innerWidth, window.innerHeight);
+      if (min < 520) { this.orbitBase = 90; this.orbitStep = 55; }
+      else if (min < 700) { this.orbitBase = 110; this.orbitStep = 65; }
+      else if (min < 900) { this.orbitBase = 130; this.orbitStep = 75; }
+      else { this.orbitBase = 150; this.orbitStep = 85; }
+    },
     orbitStyle(p) {
-      const base = 80; // base orbit radius
-      const radius = base + p.id * 38; // spacing
+      // use wider spacing so planets do not overlap visually
+      const radius = this.orbitBase + p.id * this.orbitStep;
       return { width: radius + 'px', height: radius + 'px', animationDuration: p.orbitSeconds + 's' };
     },
     planetStyle(p) {
-      // approximate relative size scaling (capped for aesthetics)
       const scale = this.relativeSize(p.radiusKm);
       return { background: p.color, transform: `scale(${scale})` };
     },
     planetPreviewStyle(p) { return { background: p.color }; },
     relativeSize(radiusKm) {
-      // scale relative to Earth (6371 km)
       const earth = 6371;
       const factor = radiusKm / earth;
-      // compress extremes
-      return Math.min(1.8, Math.max(0.45, factor ** 0.4));
+      return Math.min(1.6, Math.max(0.35, factor ** 0.4)); // slightly reduced min & max to fit larger spacing
     },
     focusPlanet(p) {
       // scroll the orbit into view (future improvement); placeholder animation trigger
@@ -227,4 +238,3 @@ export default {
 }
 @media (max-width: 520px) { .top-bar h2 { font-size:1.05rem; } .top-bar p { font-size:.65rem; } }
 </style>
-
