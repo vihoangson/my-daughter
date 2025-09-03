@@ -152,6 +152,7 @@
                         <th>Tiêu đề</th>
                         <th>Loại</th>
                         <th>Mô tả</th>
+                        <th>Hình</th>
                         <th>Trạng thái</th>
                         <th>Thao tác</th>
                       </tr>
@@ -165,9 +166,21 @@
                             {{ getTypeLabel(request.type) }}
                           </span>
                         </td>
-                        <td>{{ request.description }}</td>
+                        <td class="text-truncate" style="max-width:180px;" :title="request.description">{{ request.description }}</td>
                         <td>
-                          <span v-if="request.status === 'pending'" class="badge bg-warning">Đang chờ</span>
+                          <div v-if="request.image_url" class="request-thumb-wrapper">
+                            <img
+                              :src="request.image_url"
+                              :alt="'Ảnh yêu cầu: ' + request.title"
+                              class="request-thumb img-thumbnail"
+                              @click="openRequestImage(request)"
+                              @error="onRequestImageError($event)"
+                            />
+                          </div>
+                          <span v-else class="text-muted small">-</span>
+                        </td>
+                        <td>
+                          <span v-if="request.status === 'pending'" class="badge bg-warning text-dark">Đang chờ</span>
                           <span v-else-if="request.status === 'approved'" class="badge bg-success">Đã chấp nhận</span>
                           <span v-else-if="request.status === 'rejected'" class="badge bg-danger">Đã từ chối</span>
                           <span v-else-if="request.status === 'completed'" class="badge bg-info">Đã hoàn thành</span>
@@ -292,6 +305,57 @@
       </div>
     </div>
 
+    <!-- Request Image Modal -->
+    <div v-if="showRequestImageModal" class="modal d-block" style="background-color: rgba(0,0,0,0.7); z-index: 1060;">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">{{ requestImageData?.title }}</h5>
+            <button type="button" class="btn-close" @click="closeRequestImage"></button>
+          </div>
+          <div class="modal-body">
+            <div class="text-center mb-3">
+              <img :src="requestImageData?.image_url" :alt="requestImageData?.title" class="img-fluid rounded" style="max-height:60vh;object-fit:contain;" />
+            </div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <strong>Loại:</strong>
+                <span :class="getTypeClass(requestImageData?.type)" class="badge ms-1">{{ getTypeLabel(requestImageData?.type) }}</span>
+              </div>
+              <div class="col-md-6">
+                <strong>Trạng thái:</strong>
+                <span class="badge ms-1" :class="{
+                  'bg-warning text-dark': requestImageData?.status==='pending',
+                  'bg-success': requestImageData?.status==='approved',
+                  'bg-danger': requestImageData?.status==='rejected',
+                  'bg-info': requestImageData?.status==='completed'
+                }">{{ requestImageData?.status }}</span>
+              </div>
+              <div class="col-12">
+                <strong>Mô tả:</strong>
+                <div class="mt-1">{{ requestImageData?.description || 'Không có mô tả' }}</div>
+              </div>
+              <div class="col-md-6">
+                <strong>Ngày tạo:</strong>
+                <div class="mt-1">{{ formatDate(requestImageData?.created_at) }}</div>
+              </div>
+              <div class="col-md-6" v-if="requestImageData?.scheduled_time">
+                <strong>Lịch dự kiến:</strong>
+                <div class="mt-1">{{ formatDate(requestImageData?.scheduled_time) }}</div>
+              </div>
+              <div class="col-12" v-if="requestImageData?.parent_note">
+                <strong>Ghi chú phụ huynh:</strong>
+                <div class="mt-1">{{ requestImageData?.parent_note }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeRequestImage">Đóng</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notification -->
     <Toast
       :show="showToast"
@@ -333,6 +397,8 @@ export default {
     const localTab = ref('points');
     const showEditModal = ref(false);
     const showImage = ref(null);
+    const showRequestImageModal = ref(false);
+    const requestImageData = ref(null);
 
     // Toast state
     const showToast = ref(false);
@@ -515,6 +581,20 @@ export default {
       showImage.value = url;
     };
 
+    const openRequestImage = (request) => {
+      if(!request?.image_url) return;
+      requestImageData.value = request;
+      showRequestImageModal.value = true;
+    };
+    const closeRequestImage = () => {
+      showRequestImageModal.value = false;
+      requestImageData.value = null;
+    };
+    const onRequestImageError = (e) => {
+      e.target.style.opacity = 0.4;
+      e.target.title = 'Không tải được ảnh';
+    };
+
     const handlePointsAdded = () => {
       fetchPointsHistory();
       emit('request-processed'); // Update parent component data
@@ -548,6 +628,8 @@ export default {
       localTab,
       showEditModal,
       showImage,
+      showRequestImageModal,
+      requestImageData,
       editForm,
       defaultAvatar,
       formatDate,
@@ -560,6 +642,9 @@ export default {
       processRequest,
       completeRequest,
       showImageModal,
+      openRequestImage,
+      closeRequestImage,
+      onRequestImageError,
       handlePointsAdded,
       showToast,
       toastMessage,
@@ -579,4 +664,7 @@ export default {
 .modal {
   display: block;
 }
+.request-thumb-wrapper { width:54px; }
+.request-thumb { width:50px; height:50px; object-fit:cover; cursor:pointer; transition:filter .15s, transform .15s; }
+.request-thumb:hover { filter:brightness(0.9); transform:scale(1.05); }
 </style>

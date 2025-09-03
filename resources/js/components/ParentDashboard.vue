@@ -128,6 +128,7 @@
                       <th>Tiêu đề</th>
                       <th>Loại</th>
                       <th>Ngày yêu cầu</th>
+                      <th>Hình</th>
                       <th>Thao tác</th>
                     </tr>
                   </thead>
@@ -152,6 +153,18 @@
                         </span>
                       </td>
                       <td>{{ formatDate(request.created_at) }}</td>
+                      <td>
+                        <div v-if="request.image_url" class="thumb-wrapper">
+                          <img
+                            :src="request.image_url"
+                            :alt="'Ảnh: ' + request.title"
+                            class="request-thumb border rounded"
+                            @click="openImageModal(request)"
+                            @error="onRequestImageError($event)"
+                          />
+                        </div>
+                        <span v-else class="text-muted small">-</span>
+                      </td>
                       <td>
                         <button
                           class="btn btn-sm btn-primary me-1"
@@ -444,6 +457,23 @@
         </div>
       </div>
     </div>
+    <!-- Full Image Modal -->
+    <div v-if="showImageModal" class="modal d-block" style="background:rgba(0,0,0,0.7);">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">{{ imageModalTitle }}</h5>
+            <button type="button" class="btn-close" @click="closeImageModal"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img :src="imageModalSrc" :alt="imageModalTitle" class="img-fluid" style="max-height:70vh;object-fit:contain;" />
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeImageModal">Đóng</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -732,8 +762,24 @@ const handleKidSelection = () => {
   loadTransactions(transactionKidId.value);
 };
 
-// Modify fundAcoin to refresh transactions
-const originalFundAcoin = fundAcoin; // not needed if defined below; ensure call chain
+// Image modal state for request thumbnails
+const showImageModal = ref(false);
+const imageModalSrc = ref(null);
+const imageModalTitle = ref('Xem hình');
+const openImageModal = (request) => {
+  if(!request || !request.image_url) return;
+  imageModalSrc.value = request.image_url;
+  imageModalTitle.value = request.title || 'Hình yêu cầu';
+  showImageModal.value = true;
+};
+const closeImageModal = () => {
+  showImageModal.value = false;
+  imageModalSrc.value = null;
+};
+const onRequestImageError = (e) => {
+  e.target.style.opacity = 0.4;
+  e.target.title = 'Không tải được ảnh';
+};
 
 onMounted(() => {
   fetchData();
@@ -741,10 +787,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.cursor-pointer {
-  cursor: pointer;
-}
-
 .card {
   transition: transform 0.2s;
 }
@@ -764,4 +806,7 @@ onMounted(() => {
 }
 
 .table-active { --bs-table-accent-bg: #e8f7ff; }
+.request-thumb { width:48px; height:48px; object-fit:cover; cursor:pointer; transition:filter .15s, transform .15s; }
+.request-thumb:hover { filter:brightness(0.9); transform:scale(1.05); }
+.thumb-wrapper { width:50px; }
 </style>

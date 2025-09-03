@@ -8,6 +8,8 @@ use App\Models\UserParents;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class KidRequestController extends Controller
 {
@@ -39,6 +41,7 @@ class KidRequestController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'required|in:toy,food,playground,activity',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -53,6 +56,12 @@ class KidRequestController extends Controller
         $kidRequest->description = $request->description;
         $kidRequest->type = $request->type;
         $kidRequest->status = KidRequest::STATUS_PENDING;
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('kid_requests', 'public');
+            $kidRequest->image = $path;
+        }
+
         $kidRequest->save();
 
         return response()->json($kidRequest, 201);
@@ -145,7 +154,7 @@ class KidRequestController extends Controller
                 'requests' => $requests
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error in parentRequests: ' . $e->getMessage());
+            Log::error('Error in parentRequests: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Error retrieving requests',
                 'error' => $e->getMessage()

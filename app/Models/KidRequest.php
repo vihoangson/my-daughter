@@ -14,11 +14,16 @@ class KidRequest extends Model
         'status',
         'scheduled_time',
         'parent_id',
-        'parent_note'
+        'parent_note',
+        'image', // added
     ];
 
     protected $casts = [
         'scheduled_time' => 'datetime',
+    ];
+
+    protected $appends = [
+        'image_url',
     ];
 
     // Possible request types
@@ -47,5 +52,17 @@ class KidRequest extends Model
     public function parent()
     {
         return $this->belongsTo(UserParents::class, 'parent_id');
+    }
+
+    public function getImageUrlAttribute()
+    {
+        if (!$this->image) {
+            return null;
+        }
+        try {
+            return asset('storage/' . $this->image);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }

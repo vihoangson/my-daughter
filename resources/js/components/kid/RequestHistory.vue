@@ -24,6 +24,7 @@
                 <th>Loại</th>
                 <th>Trạng thái</th>
                 <th>Thời gian thực hiện</th>
+                <th>Hình</th>
                 <th>Chi tiết</th>
               </tr>
             </thead>
@@ -32,29 +33,30 @@
                 <td>{{ formatDate(request.created_at) }}</td>
                 <td>{{ request.title }}</td>
                 <td>
-                  <span
-                    :class="getTypeClass(request.type)"
-                    class="badge">
-                    {{ getTypeLabel(request.type) }}
-                  </span>
+                  <span :class="getTypeClass(request.type)" class="badge">{{ getTypeLabel(request.type) }}</span>
                 </td>
                 <td>
-                  <span
-                    :class="getStatusClass(request.status)"
-                    class="badge">
-                    {{ getStatusLabel(request.status) }}
-                  </span>
+                  <span :class="getStatusClass(request.status)" class="badge">{{ getStatusLabel(request.status) }}</span>
                 </td>
                 <td>
-                  <span v-if="request.scheduled_time">
-                    {{ formatDate(request.scheduled_time) }}
-                  </span>
+                  <span v-if="request.scheduled_time">{{ formatDate(request.scheduled_time) }}</span>
                   <span v-else class="text-muted">-</span>
                 </td>
                 <td>
-                  <button
-                    class="btn btn-sm btn-outline-primary"
-                    @click="viewDetails(request)">
+                  <div v-if="request.image_url" class="thumbnail-wrapper" style="width:52px;">
+                    <img
+                      :src="request.image_url"
+                      :alt="'Ảnh yêu cầu: ' + request.title"
+                      class="img-fluid rounded border"
+                      style="cursor:pointer;max-height:48px;object-fit:cover;"
+                      @click="openImageModal(request)"
+                      @error="onImageError($event, request)"
+                    />
+                  </div>
+                  <span v-else class="text-muted small">Không có</span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary" @click="viewDetails(request)">
                     <i class="fas fa-eye"></i>
                   </button>
                 </td>
@@ -127,6 +129,20 @@
                 <strong>Ghi chú từ phụ huynh:</strong>
                 <p class="mb-0">{{ selectedRequest.parent_note }}</p>
               </div>
+
+              <div v-if="selectedRequest.image_url" class="mb-3">
+                <strong>Hình minh họa:</strong>
+                <div>
+                  <img
+                    :src="selectedRequest.image_url"
+                    :alt="'Ảnh yêu cầu: ' + selectedRequest.title"
+                    class="img-fluid rounded border"
+                    style="max-height:260px;cursor:pointer;object-fit:contain;background:#f8f9fa;"
+                    @click="openImageModal(selectedRequest)"
+                  />
+                  <div class="form-text">Bấm vào ảnh để xem lớn</div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -135,11 +151,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Full Image Modal -->
+    <div v-if="showImageModal" class="modal d-block" style="background:rgba(0,0,0,0.7);">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">{{ imageModalTitle }}</h5>
+            <button type="button" class="btn-close" @click="closeImageModal"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img :src="imageModalSrc" :alt="imageModalTitle" class="img-fluid" style="max-height:70vh;object-fit:contain;" />
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeImageModal">Đóng</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -153,6 +187,9 @@ const loading = ref(true);
 const requests = ref([]);
 const showModal = ref(false);
 const selectedRequest = ref(null);
+const showImageModal = ref(false);
+const imageModalSrc = ref(null);
+const imageModalTitle = ref('Xem hình');
 
 const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjBGMEYwIi8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzgiIHI9IjEyIiBmaWxsPSIjQ0NDIi8+CjxwYXRoIGQ9Ik0yNSA3NUM0MCA2NSA2MCA2NSA3NSA3NVY3NUgyNVoiIGZpbGw9IiNDQ0MiLz4KPC9zdmc+';
 
@@ -214,6 +251,23 @@ const viewDetails = (request) => {
   showModal.value = true;
 };
 
+const onImageError = (e, request) => {
+  e.target.style.opacity = 0.3;
+  e.target.title = 'Không tải được ảnh';
+};
+
+const openImageModal = (request) => {
+  if (!request || !request.image_url) return;
+  imageModalSrc.value = request.image_url;
+  imageModalTitle.value = request.title || 'Hình yêu cầu';
+  showImageModal.value = true;
+};
+
+const closeImageModal = () => {
+  showImageModal.value = false;
+  imageModalSrc.value = null;
+};
+
 const fetchRequests = async () => {
   loading.value = true;
   try {
@@ -231,7 +285,6 @@ onMounted(() => {
 });
 
 // Watch for refresh trigger from parent component
-import { watch } from 'vue';
 watch(() => props.refreshTrigger, (newVal, oldVal) => {
   if (newVal !== oldVal) {
     fetchRequests();
@@ -239,3 +292,6 @@ watch(() => props.refreshTrigger, (newVal, oldVal) => {
 });
 </script>
 
+<style scoped>
+.thumbnail-wrapper img:hover { filter: brightness(0.9); }
+</style>
