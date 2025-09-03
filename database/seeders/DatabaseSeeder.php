@@ -31,5 +31,8 @@ class DatabaseSeeder extends Seeder
                 'type' => 'child',
             ]);
         }
+
+        // Seed animal quiz questions
+        $this->call(AnimalQuizQuestionSeeder::class);
     }
 }

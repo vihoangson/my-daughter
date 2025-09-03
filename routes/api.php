@@ -7,6 +7,7 @@ use App\Http\Controllers\KidController;
 use App\Http\Controllers\KidRequestController;
 use App\Http\Controllers\GameScoreController;
 use App\Http\Controllers\StockController; // added
+use App\Http\Controllers\AnimalQuizController; // added
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -83,6 +84,8 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::post('stocks/sell', [StockController::class, 'sell']);
         Route::post('stocks/refresh', [StockController::class, 'refresh']);
         Route::get('stocks/{stock}/prices', [StockController::class, 'prices']); // price history
+        // Animal quiz
+        Route::get('animal-quiz/questions', [AnimalQuizController::class, 'questions']);
     });
 });
 

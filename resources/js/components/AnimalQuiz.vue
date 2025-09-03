@@ -35,7 +35,9 @@
         <button class="btn btn-success w-100 mb-2" @click="startQuiz"><i class="fas fa-play me-2"></i>Bắt đầu</button>
         <router-link to="/user-kid/game" class="btn btn-outline-secondary w-100"><i class="fas fa-arrow-left me-2"></i>Quay lại danh sách game</router-link>
         <div class="mt-3 small text-muted">
-          Tổng ngân hàng hiện có: {{ fullBank.length }} câu (mẫu + sinh tự động). Bạn đang chơi: {{ questionCount }} câu.
+          <template v-if="loadingBank">Đang tải ngân hàng câu hỏi...</template>
+          <template v-else-if="loadError"><span class="text-danger">Lỗi tải câu hỏi: {{ loadError }}</span></template>
+          <template v-else>Ngân hàng hiện có: {{ fullBank.length }} câu. Bạn chọn: {{ questionCount }} câu.</template>
         </div>
       </div>
     </div>
@@ -145,6 +147,7 @@
   </div>
 </template>
 <script>
+import axios from 'axios';
 export default {
   name: 'AnimalQuiz',
   data(){
@@ -167,7 +170,9 @@ export default {
       wrongCount:0,
       selectedAnswer:null,
       answered:false,
-      wrongReview:[]
+      wrongReview:[],
+      loadingBank:false,
+      loadError:null
     }
   },
   computed:{
@@ -178,45 +183,35 @@ export default {
   mounted(){ this.buildBank(); },
   beforeUnmount(){ this.clearTimer(); },
   methods:{
-    buildBank(){
-      const base = [
-        { id: 3, difficulty: 'easy', topic: 'Kỷ lục', text: 'Loài động vật nào lớn nhất trên cạn?', options: ['Voi châu Phi', 'Hươu cao cổ', 'Hà mã', 'Tê giác trắng'], correct: 0, explanation: 'Voi châu Phi là động vật trên cạn lớn nhất hiện nay' },
-        { id: 4, difficulty: 'easy', topic: 'Ăn uống', text: 'Động vật nào thường ăn lá bạch đàn?', options: ['Gấu koala', 'Gấu trúc', 'Sư tử', 'Chó sói'], correct: 0, explanation: 'Koala hầu như chỉ ăn lá bạch đàn' },
-        { id: 5, difficulty: 'medium', topic: 'Hành vi', text: 'Đàn kiến thường để lại gì giúp đồng loại tìm đường?', options: ['Vệt mùi hóa học', 'Âm thanh lớn', 'Ánh sáng nhấp nháy', 'Vệt bùn'], correct: 0, explanation: 'Kiến dùng pheromone tạo đường mùi' },
-        { id: 6, difficulty: 'easy', topic: 'Phân loại', text: 'Đâu là động vật có vú?', options: ['Cá heo', 'Chim sẻ', 'Rùa', 'Ếch'], correct: 0, explanation: 'Cá heo thở bằng phổi và nuôi con bằng sữa' },
-        { id: 7, difficulty: 'medium', topic: 'Môi trường sống', text: 'Lạc đà thích nghi tốt với kiểu môi trường nào?', options: ['Sa mạc khô nóng', 'Rừng mưa', 'Vùng băng vĩnh cửu', 'Đầm lầy lạnh'], correct: 0, explanation: 'Lạc đà có nhiều đặc điểm giúp sống ở sa mạc' },
-        { id: 8, difficulty: 'hard', topic: 'Sinh học', text: 'Bướm trải qua kiểu biến thái gì?', options: ['Hoàn toàn', 'Không biến đổi', 'Từng phần nhỏ', 'Chỉ thay màu'], correct: 0, explanation: 'Bướm có các giai đoạn trứng ấu trùng nhộng trưởng thành' },
-        { id: 9, difficulty: 'easy', topic: 'Âm thanh', text: "Động vật nào kêu 'ò ó o' vào sáng sớm?", options: ['Gà trống', 'Chim cú', 'Chim cánh cụt', 'Bồ câu'], correct: 0, explanation: 'Gà trống gáy báo sáng' },
-        { id: 10, difficulty: 'medium', topic: 'Đặc điểm', text: 'Hươu đực thường có gì nổi bật trên đầu?', options: ['Gạc', 'Mào đỏ', 'Mũi dài', 'Vây'], correct: 0, explanation: 'Gạc hươu đực mọc rồi rụng theo mùa' },
-        { id: 11, difficulty: 'medium', topic: 'Ăn uống', text: 'Loài nào sau đây là động vật ăn tạp?', options: ['Gấu', 'Báo', 'Trình cánh cụt', 'Chim ưng'], correct: 0, explanation: 'Gấu ăn cả thực vật và thịt' },
-        { id: 12, difficulty: 'hard', topic: 'Sinh học', text: 'Động vật thở bằng mang khi còn là nòng nọc rồi thở bằng phổi khi lớn là loài nào?', options: ['Ếch', 'Rắn', 'Nhím', 'Cú'], correct: 0, explanation: 'Ếch biến thái từ nòng nọc thở mang sang trưởng thành thở phổi' },
-        { id: 13, difficulty: 'easy', topic: 'Môi trường sống', text: 'Cá hề thường sống trong gì để được bảo vệ?', options: ['Hải quỳ', 'San hô lửa', 'Tảo xanh', 'Vỏ sò rỗng'], correct: 0, explanation: 'Cá hề chung sống cộng sinh với hải quỳ' },
-        { id: 14, difficulty: 'medium', topic: 'Hành vi', text: 'Chim di cư chủ yếu để làm gì?', options: ['Tìm thức ăn và điều kiện tốt', 'Chơi đùa', 'Tránh bạn đời', 'Thay màu lông'], correct: 0, explanation: 'Di cư giúp tránh thời tiết khắc nghiệt và kiếm ăn' },
-        { id: 15, difficulty: 'easy', topic: 'Phân loại', text: 'Rùa thuộc nhóm nào?', options: ['Bò sát', 'Lưỡng cư', 'Cá xương', 'Côn trùng'], correct: 0, explanation: 'Rùa là bò sát có mai bảo vệ' },
-        { id: 16, difficulty: 'hard', topic: 'Sinh học', text: 'Ong mật giao tiếp vị trí thức ăn bằng gì?', options: ['Điệu nhảy lắc', 'Tiếng rú dài', 'Phát sáng thân', 'Đổi màu cánh'], correct: 0, explanation: 'Điệu nhảy lắc mô tả hướng và khoảng cách' },
-        { id: 17, difficulty: 'medium', topic: 'Đặc điểm', text: 'Da cá mập cảm nhận điện yếu nhờ cấu trúc gì?', options: ['Ống Lorenzini', 'Râu xúc giác', 'Túi khí', 'Tuyến mực'], correct: 0, explanation: 'Ống Lorenzini phát hiện tín hiệu điện sinh học' },
-        { id: 18, difficulty: 'easy', topic: 'Ăn uống', text: 'Thỏ thường ăn loại thức ăn nào?', options: ['Cỏ và rau', 'Thịt sống', 'Sâu bọ lớn', 'Cá nhỏ'], correct: 0, explanation: 'Thỏ là loài ăn cỏ' },
-        { id: 19, difficulty: 'medium', topic: 'Môi trường sống', text: 'Động vật nào thích nghi tốt với băng giá vùng cực?', options: ['Gấu trắng', 'Hươu cao cổ', 'Sư tử', 'Linh dương đồng cỏ'], correct: 0, explanation: 'Gấu trắng có lớp mỡ dày và lông trắng cách nhiệt' },
-        { id: 20, difficulty: 'hard', topic: 'Hành vi', text: 'Lý do chính cá heo săn theo nhóm?', options: ['Tăng hiệu quả bắt mồi', 'Giảm tiếng ồn nước', 'Đổi màu nhanh', 'Ngăn dòng chảy'], correct: 0, explanation: 'Phối hợp nhóm giúp dồn và bắt mồi hiệu quả' },
-        { id: 21, difficulty: 'medium', topic: 'Phân loại', text: 'Chim cánh cụt khác phần lớn chim ở điểm nào?', options: ['Không bay mà bơi giỏi', 'Không có lông', 'Không đẻ trứng', 'Có vú nuôi con'], correct: 0, explanation: 'Chim cánh cụt tiến hóa cánh thành mái chèo' },
-        { id: 22, difficulty: 'easy', topic: 'Âm thanh', text: 'Ếch đực thường kêu để làm gì?', options: ['Thu hút bạn tình', 'Đuổi trời mưa', 'Làm khô da', 'Tạo nhiệt'], correct: 0, explanation: 'Tiếng kêu giúp gọi và phân biệt cá thể' }
-      ];
-      this.fullBank = base; // only provided questions
-      if(this.questionCount > base.length) this.questionCount = base.length; // clamp
+    async buildBank(){
+      this.loadingBank = true; this.loadError=null; this.fullBank=[];
+      try {
+        // load default mixed with max base (20) for lobby preview
+        const r = await axios.get('/api/kid/animal-quiz/questions?mode=mixed&limit=50');
+        this.fullBank = r.data.questions;
+        if(this.questionCount > this.fullBank.length) this.questionCount = this.fullBank.length;
+      } catch(e){ this.loadError = e.response?.data?.message || e.message; }
+      finally { this.loadingBank=false; }
     },
-    startQuiz(){
+    async startQuiz(){
       this.resetCore();
+      this.inProgress=false; this.showResult=false; this.showIntro=false;
+      // fetch fresh subset according to mode & questionCount
+      this.loadingBank = true; this.loadError=null; this.fullBank=[];
+      try {
+        const r = await axios.get(`/api/kid/animal-quiz/questions?mode=${this.mode}&limit=${this.questionCount}`);
+        this.fullBank = r.data.questions;
+      } catch(e){ this.loadError = e.response?.data?.message || e.message; }
+      finally { this.loadingBank=false; }
       let pool = [...this.fullBank];
-      if(this.mode!=='mixed') pool = pool.filter(q=>q.difficulty===this.mode);
       pool.sort(()=> Math.random()-0.5);
       const picked = pool.slice(0,this.questionCount);
       const shuffled = picked.map(orig => {
-        const q = { ...orig }; // clone
+        const q = { ...orig };
         const pairs = q.options.map((opt, idx)=>({ opt, idx }));
-        // Fisher-Yates shuffle
         for(let i=pairs.length-1;i>0;i--){
           const j = Math.floor(Math.random()*(i+1));
-            [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+          [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
         }
         const originalCorrect = q.correct;
         q.options = pairs.map(p=>p.opt);
@@ -224,8 +219,8 @@ export default {
         return q;
       });
       this.activeQuestions = shuffled;
-      this.inProgress=true; this.showIntro=false; this.showResult=false; this.currentIndex=0;
-      this.runTimer();
+      this.inProgress = !this.loadError;
+      if(this.inProgress) this.runTimer();
     },
     runTimer(){
       this.clearTimer();
