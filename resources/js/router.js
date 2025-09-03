@@ -11,6 +11,7 @@ import MathAdventure from './components/MathAdventure.vue';
 import MemoryMatch from './components/MemoryMatch.vue';
 import MusicMaker from './components/MusicMaker.vue';
 import ScienceLab from './components/ScienceLab.vue';
+import AnimalQuiz from './components/AnimalQuiz.vue';
 
 const routes = [
   {
@@ -74,6 +75,12 @@ const routes = [
     path: '/user-kid/game/science-lab',
     name: 'ScienceLab',
     component: ScienceLab,
+    meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/user-kid/game/animal-quiz',
+    name: 'AnimalQuiz',
+    component: AnimalQuiz,
     meta: { requiresAuth: true, requiresKid: true }
   }
 

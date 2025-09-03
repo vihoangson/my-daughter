@@ -142,6 +142,8 @@ export default {
         this.$router.push('/user-kid/game/science-lab');
       } else if (game.id === 7) {
         this.$router.push('/user-kid/game/music-maker');
+      } else if (game.id === 9) {
+        this.$router.push('/user-kid/game/animal-quiz');
       } else {
         alert(`Bạn đã chọn trò chơi: ${game.name}. Chức năng này sẽ được phát triển trong phiên bản tới!`);
       }
