@@ -306,55 +306,11 @@
     </div>
 
     <!-- Request Image Modal -->
-    <div v-if="showRequestImageModal" class="modal d-block" style="background-color: rgba(0,0,0,0.7); z-index: 1060;">
-      <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">{{ requestImageData?.title }}</h5>
-            <button type="button" class="btn-close" @click="closeRequestImage"></button>
-          </div>
-          <div class="modal-body">
-            <div class="text-center mb-3">
-              <img :src="requestImageData?.image_url" :alt="requestImageData?.title" class="img-fluid rounded" style="max-height:60vh;object-fit:contain;" />
-            </div>
-            <div class="row g-3">
-              <div class="col-md-6">
-                <strong>Loại:</strong>
-                <span :class="getTypeClass(requestImageData?.type)" class="badge ms-1">{{ getTypeLabel(requestImageData?.type) }}</span>
-              </div>
-              <div class="col-md-6">
-                <strong>Trạng thái:</strong>
-                <span class="badge ms-1" :class="{
-                  'bg-warning text-dark': requestImageData?.status==='pending',
-                  'bg-success': requestImageData?.status==='approved',
-                  'bg-danger': requestImageData?.status==='rejected',
-                  'bg-info': requestImageData?.status==='completed'
-                }">{{ requestImageData?.status }}</span>
-              </div>
-              <div class="col-12">
-                <strong>Mô tả:</strong>
-                <div class="mt-1">{{ requestImageData?.description || 'Không có mô tả' }}</div>
-              </div>
-              <div class="col-md-6">
-                <strong>Ngày tạo:</strong>
-                <div class="mt-1">{{ formatDate(requestImageData?.created_at) }}</div>
-              </div>
-              <div class="col-md-6" v-if="requestImageData?.scheduled_time">
-                <strong>Lịch dự kiến:</strong>
-                <div class="mt-1">{{ formatDate(requestImageData?.scheduled_time) }}</div>
-              </div>
-              <div class="col-12" v-if="requestImageData?.parent_note">
-                <strong>Ghi chú phụ huynh:</strong>
-                <div class="mt-1">{{ requestImageData?.parent_note }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeRequestImage">Đóng</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <RequestImageModal
+      v-model="showRequestImageModal"
+      :request="requestImageData"
+      @closed="requestImageData = null"
+    />
 
     <!-- Toast Notification -->
     <Toast
@@ -372,11 +328,13 @@ import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 import AddPoints from './AddPoints.vue';
 import Toast from '../common/Toast.vue';
+import RequestImageModal from '../common/RequestImageModal.vue';
 
 export default {
   components: {
     AddPoints,
-    Toast
+    Toast,
+    RequestImageModal
   },
   props: {
     kid: {

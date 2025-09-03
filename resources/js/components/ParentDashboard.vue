@@ -159,7 +159,7 @@
                             :src="request.image_url"
                             :alt="'Ảnh: ' + request.title"
                             class="request-thumb border rounded"
-                            @click="openImageModal(request)"
+                            @click="openRequestImage(request)"
                             @error="onRequestImageError($event)"
                           />
                         </div>
@@ -457,23 +457,13 @@
         </div>
       </div>
     </div>
-    <!-- Full Image Modal -->
-    <div v-if="showImageModal" class="modal d-block" style="background:rgba(0,0,0,0.7);">
-      <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">{{ imageModalTitle }}</h5>
-            <button type="button" class="btn-close" @click="closeImageModal"></button>
-          </div>
-          <div class="modal-body text-center">
-            <img :src="imageModalSrc" :alt="imageModalTitle" class="img-fluid" style="max-height:70vh;object-fit:contain;" />
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeImageModal">Đóng</button>
-          </div>
-        </div>
-      </div>
-    </div>
+
+    <!-- Request Image Modal -->
+    <RequestImageModal
+      v-model="showRequestImageModal"
+      :request="currentRequestImage"
+      @closed="currentRequestImage = null"
+    />
   </div>
 </template>
 
@@ -483,6 +473,7 @@ import axios from 'axios';
 import { useRouter } from 'vue-router';
 import KidDetail from './parent/KidDetail.vue';
 import Toast from './common/Toast.vue';
+import RequestImageModal from './common/RequestImageModal.vue';
 
 const router = useRouter();
 const loading = ref(true);
@@ -762,19 +753,14 @@ const handleKidSelection = () => {
   loadTransactions(transactionKidId.value);
 };
 
-// Image modal state for request thumbnails
-const showImageModal = ref(false);
-const imageModalSrc = ref(null);
-const imageModalTitle = ref('Xem hình');
-const openImageModal = (request) => {
-  if(!request || !request.image_url) return;
-  imageModalSrc.value = request.image_url;
-  imageModalTitle.value = request.title || 'Hình yêu cầu';
-  showImageModal.value = true;
-};
-const closeImageModal = () => {
-  showImageModal.value = false;
-  imageModalSrc.value = null;
+// Request image modal state
+const showRequestImageModal = ref(false);
+const currentRequestImage = ref(null);
+
+const openRequestImage = (request) => {
+  if(!request?.image_url) return;
+  currentRequestImage.value = request;
+  showRequestImageModal.value = true;
 };
 const onRequestImageError = (e) => {
   e.target.style.opacity = 0.4;
