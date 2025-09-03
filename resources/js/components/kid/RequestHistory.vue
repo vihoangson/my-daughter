@@ -153,28 +153,18 @@
     </div>
 
     <!-- Full Image Modal -->
-    <div v-if="showImageModal" class="modal d-block" style="background:rgba(0,0,0,0.7);">
-      <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">{{ imageModalTitle }}</h5>
-            <button type="button" class="btn-close" @click="closeImageModal"></button>
-          </div>
-          <div class="modal-body text-center">
-            <img :src="imageModalSrc" :alt="imageModalTitle" class="img-fluid" style="max-height:70vh;object-fit:contain;" />
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeImageModal">Đóng</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <RequestImageModal
+      v-model="showImageModal"
+      :request="imageModalRequest"
+      @closed="imageModalRequest = null"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
+import RequestImageModal from '../common/RequestImageModal.vue';
 
 const props = defineProps({
   refreshTrigger: {
@@ -188,8 +178,7 @@ const requests = ref([]);
 const showModal = ref(false);
 const selectedRequest = ref(null);
 const showImageModal = ref(false);
-const imageModalSrc = ref(null);
-const imageModalTitle = ref('Xem hình');
+const imageModalRequest = ref(null);
 
 const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjBGMEYwIi8+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzgiIHI9IjEyIiBmaWxsPSIjQ0NDIi8+CjxwYXRoIGQ9Ik0yNSA3NUM0MCA2NSA2MCA2NSA3NSA3NVY3NUgyNVoiIGZpbGw9IiNDQ0MiLz4KPC9zdmc+';
 
@@ -258,14 +247,12 @@ const onImageError = (e, request) => {
 
 const openImageModal = (request) => {
   if (!request || !request.image_url) return;
-  imageModalSrc.value = request.image_url;
-  imageModalTitle.value = request.title || 'Hình yêu cầu';
+  imageModalRequest.value = request;
   showImageModal.value = true;
 };
-
 const closeImageModal = () => {
   showImageModal.value = false;
-  imageModalSrc.value = null;
+  imageModalRequest.value = null;
 };
 
 const fetchRequests = async () => {
