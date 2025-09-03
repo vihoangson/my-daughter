@@ -33,7 +33,7 @@
           <div class="col-md-6">
             <label class="form-label">Hình ảnh (tuỳ chọn)</label>
             <input type="file" class="form-control" @change="handleFile" accept="image/*" />
-            <div class="form-text">Tối đa 2MB.</div>
+            <div class="form-text">Tối đa 10MB.</div>
           </div>
           <div class="col-md-6" v-if="preview || currentImage">
             <label class="form-label">Xem trước</label>
@@ -119,6 +119,7 @@ const formSuccess = ref('');
 const saving = ref(false);
 const toggling = reactive({});
 const categories = ['Thể chất','Tinh thần','Học tập','Xã hội','Sáng tạo'];
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const fetchAll = async () => {
   await Promise.all([fetchKids(), fetchAchievements()]);
@@ -168,6 +169,11 @@ const resetForm = () => {
 const handleFile = (e) => {
   const file = e.target.files[0];
   if(!file) { form.image=null; preview.value=null; return; }
+  if(file.size > MAX_IMAGE_SIZE){
+    alert('File quá lớn (>' + (MAX_IMAGE_SIZE/1024/1024) + 'MB). Giới hạn 10MB');
+    e.target.value='';
+    return;
+  }
   form.image = file;
   const reader = new FileReader();
   reader.onload = ev => preview.value = ev.target.result;

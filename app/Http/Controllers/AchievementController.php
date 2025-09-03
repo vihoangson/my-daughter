@@ -40,7 +40,7 @@ class AchievementController extends Controller
             'name' => ['required','string','max:255'],
             'category' => ['nullable','string','max:100'],
             'note' => ['nullable','string'],
-            'image' => ['nullable','image','max:2048'],
+            'image' => ['nullable','image','max:10240'],
         ]);
         $achievement = new Achievement();
         $achievement->parent_id = $parent->id;
@@ -68,7 +68,7 @@ class AchievementController extends Controller
             'name' => ['sometimes','required','string','max:255'],
             'category' => ['sometimes','nullable','string','max:100'],
             'note' => ['nullable','string'],
-            'image' => ['nullable','image','max:2048'],
+            'image' => ['nullable','image','max:10240'],
             'remove_image' => ['nullable','boolean']
         ]);
         if(isset($data['name'])) $achievement->name = $data['name'];

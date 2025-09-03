@@ -94,7 +94,7 @@ class KidController extends Controller
 
         // Only validate avatar if it's present
         if ($request->hasFile('avatar')) {
-            $rules['avatar'] = 'image|mimes:jpeg,png,jpg,gif|max:2048';
+            $rules['avatar'] = 'image|mimes:jpeg,png,jpg,gif|max:10240';
         }
 
         try {

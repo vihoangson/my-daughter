@@ -22,7 +22,7 @@ class RewardPunishmentController extends Controller
             'points' => 'required|integer',
             'type' => 'required|in:reward,punishment',
             'description' => 'nullable|string',
-            'evidence' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:4096'
+            'evidence' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240'
         ]);
         // ownership check if parent logged in
         if($request->user() && $request->user()->type === 'parent') {
@@ -59,7 +59,7 @@ class RewardPunishmentController extends Controller
             'points' => 'required|integer',
             'type' => 'required|in:reward,punishment',
             'description' => 'nullable|string',
-            'evidence' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:4096'
+            'evidence' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240'
         ]);
         if($request->user() && $request->user()->type === 'parent') {
             $parent = UserParents::find($request->user()->id);
@@ -123,7 +123,7 @@ class RewardPunishmentController extends Controller
             'points' => 'required|integer|min:1|max:100',
             'type' => 'required|in:reward,punishment',
             'description' => 'required|string',
-            'evidence' => 'nullable|file|mimes:jpg,jpeg,png|max:2048'
+            'evidence' => 'nullable|file|mimes:jpg,jpeg,png|max:10240'
         ]);
 
         // Verify that the kid belongs to the parent

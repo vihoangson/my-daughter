@@ -96,7 +96,7 @@ class ParentChildController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$kid->id,
             'password' => 'nullable|string|min:4',
-            'avatar' => 'nullable|image|max:2048'
+            'avatar' => 'nullable|image|max:10240'
         ]);
 
         $kid->name = $data['name'];
@@ -214,7 +214,7 @@ class ParentChildController extends Controller
         // Only validate avatar if it's provided and is a file
         if ($request->hasFile('avatar')) {
             $avatarValidator = Validator::make($request->all(), [
-                'avatar' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+                'avatar' => 'image|mimes:jpeg,png,jpg,gif|max:10240',
             ]);
 
             if ($avatarValidator->fails()) {
