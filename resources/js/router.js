@@ -10,6 +10,7 @@ import PuzzleChallenge from './components/PuzzleChallenge.vue';
 import MathAdventure from './components/MathAdventure.vue';
 import MemoryMatch from './components/MemoryMatch.vue';
 import MusicMaker from './components/MusicMaker.vue';
+import ScienceLab from './components/ScienceLab.vue';
 
 const routes = [
   {
@@ -67,6 +68,12 @@ const routes = [
     path: '/user-kid/game/music-maker',
     name: 'MusicMaker',
     component: MusicMaker,
+    meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/user-kid/game/science-lab',
+    name: 'ScienceLab',
+    component: ScienceLab,
     meta: { requiresAuth: true, requiresKid: true }
   }
 

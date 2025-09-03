@@ -138,6 +138,8 @@ export default {
         this.$router.push('/user-kid/game/math-adventure');
       } else if (game.id === 3) {
         this.$router.push('/user-kid/game/memory-match');
+      } else if (game.id === 6) {
+        this.$router.push('/user-kid/game/science-lab');
       } else if (game.id === 7) {
         this.$router.push('/user-kid/game/music-maker');
       } else {
