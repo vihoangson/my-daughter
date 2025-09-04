@@ -67,6 +67,11 @@
               <i class="fas fa-trophy me-1"></i> Thành tích
             </a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" :class="{ active: activeTab === 'rewards' }" href="#" @click.prevent="activeTab = 'rewards'">
+              <i class="fas fa-gift me-1"></i> Phần thưởng
+            </a>
+          </li>
         </ul>
       </div>
     </div>
@@ -477,6 +482,20 @@
       </div>
     </div>
 
+    <!-- Rewards Content -->
+    <div v-if="activeTab === 'rewards'" class="row">
+      <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-danger text-white d-flex align-items-center justify-content-between">
+              <h5 class="mb-0"><i class="fas fa-gift me-2"></i>Quản lý phần thưởng</h5>
+            </div>
+            <div class="card-body">
+              <RewardItemsManager />
+            </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Request Image Modal -->
     <RequestImageModal
       v-model="showRequestImageModal"
@@ -494,6 +513,7 @@ import KidDetail from './parent/KidDetail.vue';
 import Toast from './common/Toast.vue';
 import RequestImageModal from './common/RequestImageModal.vue';
 import AchievementsManager from './AchievementsManager.vue';
+import RewardItemsManager from './RewardItemsManager.vue';
 
 const router = useRouter();
 const loading = ref(true);

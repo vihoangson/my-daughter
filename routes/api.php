@@ -65,6 +65,13 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::put('achievements/{achievement}', [AchievementController::class, 'update']);
         Route::delete('achievements/{achievement}', [AchievementController::class, 'destroy']);
         Route::post('achievements/{achievement}/toggle-kid/{kid}', [AchievementController::class, 'toggleKid']);
+
+        // Reward items CRUD
+        Route::get('rewards', [\App\Http\Controllers\RewardItemController::class,'index']);
+        Route::post('rewards', [\App\Http\Controllers\RewardItemController::class,'store']);
+        Route::put('rewards/{reward}', [\App\Http\Controllers\RewardItemController::class,'update']);
+        Route::delete('rewards/{reward}', [\App\Http\Controllers\RewardItemController::class,'destroy']);
+        Route::post('rewards/{reward}/toggle', [\App\Http\Controllers\RewardItemController::class,'toggleActive']);
     });
 
     // Kid routes
