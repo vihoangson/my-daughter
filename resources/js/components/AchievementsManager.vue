@@ -1,10 +1,16 @@
 <template>
   <div class="mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
       <h4 class="mb-0">Thành tích (Achievements)</h4>
-      <div class="btn-group">
-        <button class="btn btn-sm btn-primary" @click="startCreate" v-if="!showForm">+ Thêm</button>
-        <button class="btn btn-sm btn-secondary" @click="cancelForm" v-else>Đóng</button>
+      <div class="d-flex align-items-center gap-2">
+        <div class="btn-group">
+          <button class="btn btn-sm btn-outline-secondary" :class="{active: viewMode==='list'}" @click="viewMode='list'">Danh sách</button>
+          <button class="btn btn-sm btn-outline-secondary" :class="{active: viewMode==='matrix'}" @click="viewMode='matrix'">Ma trận</button>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-primary" @click="startCreate" v-if="!showForm">+ Thêm</button>
+          <button class="btn btn-sm btn-secondary" @click="cancelForm" v-else>Đóng</button>
+        </div>
       </div>
     </div>
 
@@ -53,53 +59,113 @@
       </form>
     </div>
 
-    <div class="table-responsive" v-if="achievements.length">
-      <table class="table table-sm table-bordered align-middle">
-        <thead class="table-light">
-          <tr>
-            <th style="width:40px">#</th>
-            <th style="width:60px">Ảnh</th>
-            <th style="width:130px">Phân loại</th>
-            <th>Tên</th>
-            <th style="min-width:150px">Ghi chú</th>
-            <th>Trẻ đạt</th>
-            <th style="min-width:240px">Trạng thái theo trẻ</th>
-            <th style="width:140px">Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="a in achievements" :key="a.id">
-            <td>{{ a.id }}</td>
-            <td>
-              <img v-if="a.image_url" :src="a.image_url" style="width:50px;height:50px;object-fit:cover;border-radius:6px" />
-              <div v-else class="bg-secondary text-white rounded d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:11px">NO IMG</div>
-            </td>
-            <td>
-              <span v-if="a.category" class="badge text-bg-info">{{ a.category }}</span>
-              <span v-else class="text-muted small">-</span>
-            </td>
-            <td class="fw-semibold">{{ a.name }}</td>
-            <td>{{ a.note }}</td>
-            <td>{{ countAchieved(a) }}/{{ kids.length }}</td>
-            <td>
-              <div class="d-flex flex-wrap gap-1">
-                <button v-for="k in kids" :key="k.id" type="button" class="btn btn-xs btn-outline-success position-relative" :class="{'active-achieved': isAchieved(a,k)}" @click="toggle(a,k)" :disabled="toggling[ a.id + '-' + k.id ]">
-                  <span class="small">{{ shortName(k.name) }}</span>
-                  <span v-if="toggling[ a.id + '-' + k.id ]" class="spinner-border spinner-border-sm position-absolute top-50 start-50 translate-middle" style="width:14px;height:14px"></span>
-                </button>
-              </div>
-            </td>
-            <td>
-              <div class="btn-group btn-group-sm">
-                <button class="btn btn-warning" @click="edit(a)">Sửa</button>
-                <button class="btn btn-danger" @click="remove(a)">Xóa</button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- LIST VIEW -->
+    <div v-if="viewMode==='list'">
+      <div class="table-responsive" v-if="achievements.length">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width:40px">#</th>
+              <th style="width:60px">Ảnh</th>
+              <th style="width:130px">Phân loại</th>
+              <th>Tên</th>
+              <th style="min-width:150px">Ghi chú</th>
+              <th>Trẻ đạt</th>
+              <th style="min-width:240px">Trạng thái theo trẻ</th>
+              <th style="width:140px">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="a in achievements" :key="a.id">
+              <td>{{ a.id }}</td>
+              <td>
+                <img v-if="a.image_url" :src="a.image_url" style="width:50px;height:50px;object-fit:cover;border-radius:6px" />
+                <div v-else class="bg-secondary text-white rounded d-flex align-items-center justify-content-center" style="width:50px;height:50px;font-size:11px">NO IMG</div>
+              </td>
+              <td>
+                <span v-if="a.category" class="badge text-bg-info">{{ a.category }}</span>
+                <span v-else class="text-muted small">-</span>
+              </td>
+              <td class="fw-semibold">{{ a.name }}</td>
+              <td>{{ a.note }}</td>
+              <td>{{ countAchieved(a) }}/{{ kids.length }}</td>
+              <td>
+                <div class="d-flex flex-wrap gap-1">
+                  <button v-for="k in kids" :key="k.id" type="button" class="btn btn-xs btn-outline-success position-relative" :class="{'active-achieved': isAchieved(a,k)}" @click="toggle(a,k)" :disabled="toggling[ a.id + '-' + k.id ]">
+                    <span class="small">{{ shortName(k.name) }}</span>
+                    <span v-if="toggling[ a.id + '-' + k.id ]" class="spinner-border spinner-border-sm position-absolute top-50 start-50 translate-middle" style="width:14px;height:14px"></span>
+                  </button>
+                </div>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-warning" @click="edit(a)">Sửa</button>
+                  <button class="btn btn-danger" @click="remove(a)">Xóa</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else class="text-muted fst-italic">Chưa có thành tích nào.</div>
     </div>
-    <div v-else class="text-muted fst-italic">Chưa có thành tích nào.</div>
+
+    <!-- MATRIX VIEW -->
+    <div v-else-if="viewMode==='matrix'">
+      <div v-if="!achievements.length" class="text-muted fst-italic">Chưa có thành tích nào.</div>
+      <div v-else class="matrix-wrapper border rounded">
+        <div class="table-responsive" style="max-height:70vh;">
+          <table class="table table-sm table-bordered align-middle matrix-table mb-0">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th style="min-width:260px">Thành tích</th>
+                <th class="text-center" style="width:70px">Ph.loại</th>
+                <th class="text-center" style="width:70px">Trẻ đạt</th>
+                <th v-for="k in kids" :key="'head-'+k.id" class="kid-col text-center" :title="k.name">
+                  <div class="kid-name">{{ shortName(k.name) }}</div>
+                </th>
+                <th style="width:120px" class="text-center">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="a in achievements" :key="'row-'+a.id">
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <img v-if="a.image_url" :src="a.image_url" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #ddd" />
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold">{{ a.name }}</div>
+                      <div class="small text-muted" v-if="a.note">{{ a.note }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span v-if="a.category" class="badge text-bg-info">{{ a.category }}</span>
+                  <span v-else class="text-muted small">-</span>
+                </td>
+                <td class="text-center small fw-semibold">{{ countAchieved(a) }}/{{ kids.length }}</td>
+                <td v-for="k in kids" :key="'cell-'+a.id+'-'+k.id" class="text-center p-0">
+                  <button type="button"
+                          class="cell-btn w-100 h-100 position-relative"
+                          :class="{'achieved': isAchieved(a,k)}"
+                          @click="toggle(a,k)"
+                          :disabled="toggling[a.id+'-'+k.id]">
+                    <span v-if="toggling[a.id+'-'+k.id]" class="spinner-border spinner-border-sm position-absolute top-50 start-50 translate-middle" style="width:14px;height:14px"></span>
+                    <span v-else class="icon">{{ isAchieved(a,k) ? '✓' : '' }}</span>
+                  </button>
+                </td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-warning" @click="edit(a)">Sửa</button>
+                    <button class="btn btn-danger" @click="remove(a)">Xóa</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="small text-muted mt-2 px-2">Bấm vào ô để bật/tắt trạng thái đạt cho từng trẻ.</div>
+      </div>
+    </div>
   </div>
 </template>
 <script setup>
@@ -120,6 +186,7 @@ const saving = ref(false);
 const toggling = reactive({});
 const categories = ['Thể chất','Tinh thần','Học tập','Xã hội','Sáng tạo'];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+const viewMode = ref('list');
 
 const fetchAll = async () => {
   await Promise.all([fetchKids(), fetchAchievements()]);
@@ -255,4 +322,13 @@ onMounted(fetchAll);
 <style scoped>
 .btn-xs { padding:2px 6px; font-size:11px; }
 .active-achieved { background:#198754 !important; color:#fff !important; }
+.matrix-wrapper { background:#fff; }
+.matrix-table th, .matrix-table td { white-space:nowrap; }
+.matrix-table .kid-col { min-width:60px; }
+.kid-name { font-size:11px; font-weight:600; }
+.cell-btn { border:0; background:#f8f9fa; padding:0; min-width:40px; min-height:40px; cursor:pointer; }
+.cell-btn:hover { background:#e2e6ea; }
+.cell-btn.achieved { background:#198754; color:#fff; font-weight:600; }
+.cell-btn.achieved:hover { background:#146c43; }
+.cell-btn .icon { font-size:16px; line-height:1; }
 </style>
