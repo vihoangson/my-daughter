@@ -15,7 +15,9 @@ class Achievement extends Model
 
     public function kids()
     {
-        return $this->belongsToMany(UserKid::class, 'achievement_kid', 'achievement_id', 'kid_id')->withPivot('achieved_at')->withTimestamps();
+        return $this->belongsToMany(UserKid::class, 'achievement_kid', 'achievement_id', 'kid_id')
+            ->withPivot('achieved_at','kid_note')
+            ->withTimestamps();
     }
 
     public function getImageUrlAttribute(): ?string

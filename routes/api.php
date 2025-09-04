@@ -97,6 +97,7 @@ Route::middleware('auth:sanctum')->group(function(){
 
         // Kid achievements list
         Route::get('achievements', [AchievementController::class, 'kidIndex']);
+        Route::put('achievements/{achievement}/kid-note', [AchievementController::class, 'updateKidNote']);
     });
 });
 

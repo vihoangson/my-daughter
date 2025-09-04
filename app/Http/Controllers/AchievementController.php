@@ -23,6 +23,7 @@ class AchievementController extends Controller
             ->map(function($a){
                 $a->kids->transform(function($k){
                     $k->achieved = (bool)$k->pivot->achieved_at;
+                    $k->kid_note = $k->pivot->kid_note;
                     return $k;
                 });
                 return $a;
@@ -136,10 +137,10 @@ class AchievementController extends Controller
             // set to null (unachieve)
             $achievement->kids()->updateExistingPivot($kid->id, ['achieved_at'=>null]);
         } else {
-            $achievement->kids()->syncWithoutDetaching([$kid->id => ['achieved_at' => now()]]);
+            $achievement->kids()->syncWithoutDetaching([$kid->id => ['achieved_at' => now(), 'kid_note' => $existing? $existing->pivot->kid_note : null]]);
         }
         $kidFresh = $achievement->kids()->where('users.id',$kid->id)->first();
-        return ['kid_id'=>$kid->id,'achieved'=>(bool)($kidFresh && $kidFresh->pivot->achieved_at),'achieved_at'=>$kidFresh? $kidFresh->pivot->achieved_at: null];
+        return ['kid_id'=>$kid->id,'achieved'=>(bool)($kidFresh && $kidFresh->pivot->achieved_at),'achieved_at'=>$kidFresh? $kidFresh->pivot->achieved_at: null, 'kid_note'=>$kidFresh? $kidFresh->pivot->kid_note:null];
     }
 
     // Kid: list achievements visible to kid
@@ -148,7 +149,6 @@ class AchievementController extends Controller
         /** @var \App\Models\UserKid $kid */
         $kid = Auth::user();
         if(!$kid) return response()->json(['message'=>'Unauthenticated'], 401);
-        // Achievements created by any parent that manages this kid
         $parentIds = $kid->parents()->pluck('users.id');
         $achievements = Achievement::whereIn('parent_id',$parentIds)
             ->with(['kids'=>function($q) use ($kid){ $q->where('users.id',$kid->id); }])
@@ -157,9 +157,33 @@ class AchievementController extends Controller
             ->map(function($a) use ($kid) {
                 $pivotKid = $a->kids->first();
                 $a->achieved = $pivotKid && $pivotKid->pivot->achieved_at ? true : false;
-                unset($a->kids); // remove to simplify payload
+                $a->kid_note = $pivotKid ? $pivotKid->pivot->kid_note : null;
+                unset($a->kids);
                 return $a;
             });
         return $achievements;
+    }
+
+    // Kid: update personal note on an achievement
+    public function updateKidNote(Request $request, Achievement $achievement)
+    {
+        /** @var \App\Models\UserKid $kid */
+        $kid = Auth::user();
+        if(!$kid) return response()->json(['message'=>'Unauthenticated'], 401);
+        // Ensure achievement belongs to one of kid's parents
+        $parentIds = $kid->parents()->pluck('users.id');
+        if(!$parentIds->contains($achievement->parent_id)){
+            return response()->json(['message'=>'Forbidden'], 403);
+        }
+        $data = $request->validate([
+            'kid_note' => ['nullable','string','max:5000']
+        ]);
+        $existing = $achievement->kids()->where('users.id',$kid->id)->first();
+        if($existing){
+            $achievement->kids()->updateExistingPivot($kid->id, ['kid_note'=>$data['kid_note'] ?? null]);
+        } else {
+            $achievement->kids()->attach($kid->id, ['kid_note'=>$data['kid_note'] ?? null]);
+        }
+        return ['id'=>$achievement->id,'kid_note'=>$data['kid_note'] ?? null];
     }
 }
