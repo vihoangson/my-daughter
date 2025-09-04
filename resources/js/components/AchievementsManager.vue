@@ -103,7 +103,7 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 
 const achievements = ref([]);
@@ -159,6 +159,14 @@ const edit = (a) => {
   form.note = a.note;
   currentImage.value = a.image_url;
   showForm.value = true;
+  // Scroll to top to reveal form
+  nextTick(() => {
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      window.scrollTo(0,0);
+    }
+  });
 };
 const cancelForm = () => { resetForm(); showForm.value=false; };
 
