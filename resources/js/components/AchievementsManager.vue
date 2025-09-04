@@ -5,7 +5,7 @@
       <div class="d-flex align-items-center gap-2">
         <div class="btn-group">
           <button class="btn btn-sm btn-outline-secondary" :class="{active: viewMode==='list'}" @click="viewMode='list'">Danh sách</button>
-          <button class="btn btn-sm btn-outline-secondary" :class="{active: viewMode==='matrix'}" @click="viewMode='matrix'">Grid View</button>
+          <button class="btn btn-sm btn-outline-secondary" :class="{active: viewMode==='grid'}" @click="viewMode='grid'">Grid View</button>
         </div>
         <div class="btn-group">
           <button class="btn btn-sm btn-primary" @click="startCreate" v-if="!showForm">+ Thêm</button>
@@ -44,7 +44,7 @@
           <div class="col-md-6" v-if="preview || currentImage">
             <label class="form-label">Xem trước</label>
             <div class="d-flex align-items-center gap-2">
-              <img :src="preview || currentImage" alt="preview" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #ccc" />
+              <img :src="preview || currentImage" alt="preview" class="preview-img" />
               <button v-if="currentImage && !removeImage" type="button" class="btn btn-sm btn-outline-danger" @click="removeImage = true">Gỡ ảnh</button>
               <span v-if="removeImage" class="badge text-bg-warning">Ảnh sẽ bị xoá</span>
             </div>
@@ -110,61 +110,43 @@
       <div v-else class="text-muted fst-italic">Chưa có thành tích nào.</div>
     </div>
 
-    <!-- MATRIX VIEW -->
-    <div v-else-if="viewMode==='matrix'">
+    <!-- GRID VIEW -->
+    <div v-else-if="viewMode==='grid'">
       <div v-if="!achievements.length" class="text-muted fst-italic">Chưa có thành tích nào.</div>
-      <div v-else class="matrix-wrapper border rounded">
-        <div class="table-responsive" style="max-height:70vh;">
-          <table class="table table-sm table-bordered align-middle matrix-table mb-0">
-            <thead class="table-light sticky-top">
-              <tr>
-                <th style="min-width:260px">Thành tích</th>
-                <th class="text-center" style="width:70px">Ph.loại</th>
-                <th class="text-center" style="width:70px">Trẻ đạt</th>
-                <th v-for="k in kids" :key="'head-'+k.id" class="kid-col text-center" :title="k.name">
-                  <div class="kid-name">{{ shortName(k.name) }}</div>
-                </th>
-                <th style="width:120px" class="text-center">Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="a in achievements" :key="'row-'+a.id">
-                <td>
-                  <div class="d-flex align-items-center gap-2">
-                    <img v-if="a.image_url" :src="a.image_url" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #ddd" />
-                    <div class="flex-grow-1">
-                      <div class="fw-semibold">{{ a.name }}</div>
-                      <div class="small text-muted" v-if="a.note">{{ a.note }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="text-center">
-                  <span v-if="a.category" class="badge text-bg-info">{{ a.category }}</span>
-                  <span v-else class="text-muted small">-</span>
-                </td>
-                <td class="text-center small fw-semibold">{{ countAchieved(a) }}/{{ kids.length }}</td>
-                <td v-for="k in kids" :key="'cell-'+a.id+'-'+k.id" class="text-center p-0">
-                  <button type="button"
-                          class="cell-btn w-100 h-100 position-relative"
-                          :class="{'achieved': isAchieved(a,k)}"
-                          @click="toggle(a,k)"
-                          :disabled="toggling[a.id+'-'+k.id]">
-                    <span v-if="toggling[a.id+'-'+k.id]" class="spinner-border spinner-border-sm position-absolute top-50 start-50 translate-middle" style="width:14px;height:14px"></span>
-                    <span v-else class="icon">{{ isAchieved(a,k) ? '✓' : '' }}</span>
+      <div v-else class="row g-3">
+        <div v-for="a in achievements" :key="'card-'+a.id" class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2">
+          <div class="card h-100 achievement-card">
+            <div class="ratio ratio-4x3 card-img-top bg-light position-relative overflow-hidden" v-if="a.image_url">
+              <img :src="a.image_url" :alt="a.name" class="w-100 h-100 object-cover" />
+              <span class="badge bg-success position-absolute top-0 end-0 m-1" v-if="countAchieved(a)===kids.length && kids.length">Full</span>
+            </div>
+            <div v-else class="card-img-top placeholder-img d-flex align-items-center justify-content-center text-muted small">Không có ảnh</div>
+            <div class="card-body py-2 px-2 d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <h6 class="card-title mb-0 text-truncate" :title="a.name">{{ a.name }}</h6>
+                <span v-if="a.category" class="badge rounded-pill text-bg-info ms-1">{{ a.category }}</span>
+              </div>
+              <p v-if="a.note" class="card-text small text-muted mb-2 line-clamp-2" :title="a.note">{{ a.note }}</p>
+              <div class="mb-2">
+                <span class="badge bg-primary-subtle text-primary border small">{{ countAchieved(a) }}/{{ kids.length }} trẻ</span>
+              </div>
+              <div class="kid-toggle-wrap mb-2">
+                <div class="d-flex flex-wrap gap-1">
+                  <button v-for="k in kids" :key="'grid-btn-'+a.id+'-'+k.id" type="button" class="btn btn-xxs btn-outline-success position-relative" :class="{'btn-achieved': isAchieved(a,k)}" @click="toggle(a,k)" :disabled="toggling[a.id+'-'+k.id]">
+                    <span>{{ shortName(k.name) }}</span>
+                    <span v-if="toggling[a.id+'-'+k.id]" class="spinner-border spinner-border-sm position-absolute top-50 start-50 translate-middle" style="width:12px;height:12px"></span>
                   </button>
-                </td>
-                <td class="text-center">
-                  <div class="btn-group btn-group-sm">
-                    <button class="btn btn-warning" @click="edit(a)">Sửa</button>
-                    <button class="btn btn-danger" @click="remove(a)">Xóa</button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+              </div>
+              <div class="mt-auto d-flex gap-1">
+                <button class="btn btn-warning btn-xxs flex-grow-1" @click="edit(a)">Sửa</button>
+                <button class="btn btn-danger btn-xxs flex-grow-1" @click="remove(a)">Xóa</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="small text-muted mt-2 px-2">Bấm vào ô để bật/tắt trạng thái đạt cho từng trẻ.</div>
       </div>
+      <div class="small text-muted mt-2" v-if="achievements.length">Nhấn vào tên viết tắt để bật/tắt trạng thái đạt.</div>
     </div>
   </div>
 </template>
@@ -322,13 +304,13 @@ onMounted(fetchAll);
 <style scoped>
 .btn-xs { padding:2px 6px; font-size:11px; }
 .active-achieved { background:#198754 !important; color:#fff !important; }
-.matrix-wrapper { background:#fff; }
-.matrix-table th, .matrix-table td { white-space:nowrap; }
-.matrix-table .kid-col { min-width:60px; }
-.kid-name { font-size:11px; font-weight:600; }
-.cell-btn { border:0; background:#f8f9fa; padding:0; min-width:40px; min-height:40px; cursor:pointer; }
-.cell-btn:hover { background:#e2e6ea; }
-.cell-btn.achieved { background:#198754; color:#fff; font-weight:600; }
-.cell-btn.achieved:hover { background:#146c43; }
-.cell-btn .icon { font-size:16px; line-height:1; }
+.preview-img { width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #ccc; }
+/* Grid View styles */
+.object-cover { object-fit:cover; }
+.placeholder-img { height:120px; background:repeating-linear-gradient(45deg,#f8f9fa,#f8f9fa 10px,#eef1f4 10px,#eef1f4 20px); border-bottom:1px solid #e5e7eb; }
+.achievement-card { border:1px solid #e5e7eb; transition:box-shadow .15s, transform .15s; }
+.achievement-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.08); transform:translateY(-2px); }
+.btn-xxs { padding:2px 6px; font-size:11px; line-height:1.1; }
+.btn-xxs.btn-achieved { background:#198754; color:#fff; border-color:#198754; }
+.line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 </style>
