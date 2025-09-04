@@ -5,7 +5,7 @@
       <div class="d-flex align-items-center gap-2">
         <div class="btn-group">
           <button class="btn btn-sm btn-outline-secondary" :class="{active: viewMode==='list'}" @click="viewMode='list'">Danh sách</button>
-          <button class="btn btn-sm btn-outline-secondary" :class="{active: viewMode==='matrix'}" @click="viewMode='matrix'">Ma trận</button>
+          <button class="btn btn-sm btn-outline-secondary" :class="{active: viewMode==='matrix'}" @click="viewMode='matrix'">Grid View</button>
         </div>
         <div class="btn-group">
           <button class="btn btn-sm btn-primary" @click="startCreate" v-if="!showForm">+ Thêm</button>
