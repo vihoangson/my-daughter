@@ -105,6 +105,11 @@ Route::middleware('auth:sanctum')->group(function(){
         // Kid achievements list
         Route::get('achievements', [AchievementController::class, 'kidIndex']);
         Route::put('achievements/{achievement}/kid-note', [AchievementController::class, 'updateKidNote']);
+
+        // Kid rewards
+        Route::get('rewards', [\App\Http\Controllers\RewardItemController::class,'kidList']);
+        Route::get('rewards/redemptions', [\App\Http\Controllers\RewardItemController::class,'kidRedemptions']);
+        Route::post('rewards/{reward}/redeem', [\App\Http\Controllers\RewardItemController::class,'kidRedeem']);
     });
 });
 

@@ -14,6 +14,9 @@
       <li class="nav-item" role="presentation">
         <button class="nav-link" :class="{active: activeTab==='achievements'}" @click="activeTab='achievements'">Thành tích</button>
       </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" :class="{active: activeTab==='rewards'}" @click="activeTab='rewards'">Phần thưởng</button>
+      </li>
     </ul>
 
     <div v-show="activeTab==='request'">
@@ -28,6 +31,9 @@
     <div v-show="activeTab==='achievements'">
       <KidAchievements />
     </div>
+    <div v-show="activeTab==='rewards'">
+      <KidRewards />
+    </div>
   </div>
 </template>
 <script setup>
@@ -36,6 +42,7 @@ import RequestForm from './RequestForm.vue';
 import RequestHistory from './RequestHistory.vue';
 import StockTrading from './StockTrading.vue';
 import KidAchievements from './KidAchievements.vue';
+import KidRewards from './KidRewards.vue';
 
 const activeTab = ref('request');
 const refreshKey = ref(0);
