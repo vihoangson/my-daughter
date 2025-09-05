@@ -16,6 +16,7 @@ class KidRequest extends Model
         'parent_id',
         'parent_note',
         'image', // added
+        'classification', // need or want
     ];
 
     protected $casts = [

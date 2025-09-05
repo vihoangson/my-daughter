@@ -321,3 +321,5 @@ class KidRequestController extends Controller
         return response()->json($kidRequest);
     }
 }
+
+     * Kid classifies their own request as need, want, or clears classification
