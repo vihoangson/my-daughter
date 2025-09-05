@@ -76,7 +76,7 @@ deploy_to_remote() {
     print_message "Deploying to remote server: ${REMOTE_HOST}..."
 
     # Execute SSH command to pull latest changes
-    ssh ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_PATH} && git pull"
+    ssh ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_PATH} && git pull origin master2"
 
     if [ $? -eq 0 ]; then
         print_message "Remote deployment completed successfully."
