@@ -34,7 +34,7 @@ class KidRequestController extends Controller
             $requests = KidRequest::where('child_id', Auth::id())
                 ->with('parent:id,name,avatar')
                 ->orderBy('created_at', 'desc')
-                ->get();
+                ->get( );
             Log::info('KidRequestController@index found requests', ['count' => $requests->count()]);
             return response()->json($requests);
         } catch (\Throwable $e) {
