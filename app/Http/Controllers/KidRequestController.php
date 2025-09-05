@@ -322,4 +322,3 @@ class KidRequestController extends Controller
     }
 }
 
-     * Kid classifies their own request as need, want, or clears classification

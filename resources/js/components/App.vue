@@ -3,7 +3,16 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3" v-if="isAuth">
       <div class="container-fluid">
         <a class="navbar-brand" href="#" @click.prevent="goDashboard">MyDaughter</a>
-        <div class="d-flex align-items-center">
+        <!-- Kid specific nav -->
+        <ul class="navbar-nav ms-3 me-auto" v-if="currentUser && currentUser.type === 'child'">
+          <li class="nav-item">
+            <router-link to="/user-kid" class="nav-link" active-class="active">Dashboard</router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/classify-requests" class="nav-link" active-class="active">Phân loại yêu cầu</router-link>
+          </li>
+        </ul>
+        <div class="d-flex align-items-center ms-auto">
           <span v-if="currentUser" class="me-3">
             Xin chào, {{ currentUser.name }}
             <span class="badge bg-secondary ms-1">

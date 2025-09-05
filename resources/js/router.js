@@ -12,6 +12,7 @@ import MemoryMatch from './components/MemoryMatch.vue';
 import MusicMaker from './components/MusicMaker.vue';
 import ScienceLab from './components/ScienceLab.vue';
 import AnimalQuiz from './components/AnimalQuiz.vue';
+import KidRequestClassifier from './components/kid/KidRequestClassifier.vue'; // added
 
 const routes = [
   {
@@ -82,8 +83,13 @@ const routes = [
     name: 'AnimalQuiz',
     component: AnimalQuiz,
     meta: { requiresAuth: true, requiresKid: true }
-  }
-
+  },
+  {
+    path: '/classify-requests',
+    name: 'KidRequestClassifier',
+    component: KidRequestClassifier,
+    meta: { requiresAuth: true, requiresKid: true }
+  } // new route
 ];
 
 const router = createRouter({
@@ -128,7 +134,8 @@ router.beforeEach(async (to, from, next) => {
     // Redirect kid users to the kid dashboard if they try to access other pages
     if (window.currentUser.type === 'child' &&
         to.path !== '/user-kid' &&
-        !to.path.startsWith('/user-kid/')) {
+        !to.path.startsWith('/user-kid/') &&
+        to.path !== '/classify-requests') { // allow classification page
       next('/user-kid');
       return;
     }
