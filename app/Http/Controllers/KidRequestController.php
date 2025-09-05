@@ -20,13 +20,27 @@ class KidRequestController extends Controller
      */
     public function index()
     {
-        $user = Auth::user();
-        $requests = KidRequest::where('child_id', $user->id)
-            ->with('parent:id,name,avatar')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json($requests);
+        try {
+            Log::info('KidRequestController@index start', [
+                'user_id' => Auth::id(),
+                'auth_user_type' => Auth::user()?->type
+            ]);
+            if (!Auth::check()) {
+                return response()->json(['message' => 'Unauthenticated'], 401);
+            }
+            if (Auth::user()->type !== 'child') {
+                return response()->json(['message' => 'Only kid user allowed'], 403);
+            }
+            $requests = KidRequest::where('child_id', Auth::id())
+                ->with('parent:id,name,avatar')
+                ->orderBy('created_at', 'desc')
+                ->get();
+            Log::info('KidRequestController@index found requests', ['count' => $requests->count()]);
+            return response()->json($requests);
+        } catch (\Throwable $e) {
+            Log::error('KidRequestController@index error: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['message' => 'Server error','error' => $e->getMessage()], 500);
+        }
     }
 
     /**
