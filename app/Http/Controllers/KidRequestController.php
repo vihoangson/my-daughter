@@ -320,5 +320,25 @@ class KidRequestController extends Controller
 
         return response()->json($kidRequest);
     }
-}
 
+    /**
+     * Kid classifies their own request (need / want / none to clear)
+     */
+    public function classify(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'classification' => 'required|in:need,want,none'
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        $user = $request->user();
+        $kidRequest = KidRequest::where('id', $id)->where('child_id', $user->id)->firstOrFail();
+        $kidRequest->classification = $request->classification === 'none' ? null : $request->classification;
+        $kidRequest->save();
+        return response()->json([
+            'message' => 'Classification updated',
+            'request' => $kidRequest
+        ]);
+    }
+}

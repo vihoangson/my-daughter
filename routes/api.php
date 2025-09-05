@@ -86,6 +86,7 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('requests', [KidRequestController::class, 'index']);
         Route::post('requests', [KidRequestController::class, 'store']);
         Route::get('requests/{id}', [KidRequestController::class, 'show']);
+        Route::post('requests/{id}/classify', [KidRequestController::class, 'classify']); // moved here so path = /api/kid/requests/{id}/classify
 
         // Game score routes
         Route::post('game-scores', [GameScoreController::class, 'store']);
@@ -104,15 +105,12 @@ Route::middleware('auth:sanctum')->group(function(){
 
         // Kid achievements list
         Route::get('achievements', [AchievementController::class, 'kidIndex']);
-        Route::put('achievements/{achievement}/kid-note', [AchievementController::class, 'updateKidNote']);
+        Route::post('achievements/{achievement}/kid-note', [AchievementController::class, 'updateKidNote']);
     });
 });
 
 // Kid user routes
 Route::middleware(['auth:sanctum', 'kid'])->group(function(){
-
-        // Classification route
-        Route::put('requests/{id}/classify', [KidRequestController::class, 'classify']); // classification endpoint
     Route::get('kid/dashboard', [\App\Http\Controllers\KidUserController::class, 'dashboard']);
     Route::get('kid/profile', [\App\Http\Controllers\KidUserController::class, 'profile']);
 });

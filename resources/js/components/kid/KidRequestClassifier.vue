@@ -98,7 +98,7 @@ export default {
       const previous = item.classification;
       item.classification = target; // optimistic
       try {
-        await axios.put(`/api/kid/requests/${item.id}/classify`, { classification: target });
+        await axios.post(`/api/kid/requests/${item.id}/classify`, { classification: target });
       } catch (e) {
         item.classification = previous;
         alert('Lỗi khi lưu classification');
@@ -108,7 +108,7 @@ export default {
       const previous = r.classification;
       r.classification = null;
       try {
-        await axios.put(`/api/kid/requests/${r.id}/classify`, { classification: previous === 'need' ? 'want' : 'need' });
+        await axios.post(`/api/kid/requests/${r.id}/classify`, { classification: previous === 'need' ? 'want' : 'need' });
         // Immediately flip twice to effectively unset? Instead reload list.
         await this.load();
       } catch (e) {
