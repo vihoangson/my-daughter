@@ -81,6 +81,12 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('kids/{kid}/stocks/summary', [StockController::class,'parentKidSummary']);
         Route::get('kids/{kid}/stocks/holdings', [StockController::class,'parentKidHoldings']);
         Route::get('kids/{kid}/stocks/trades', [StockController::class,'parentKidTrades']);
+
+        // Loan (Bank) management
+        Route::get('loans', [\App\Http\Controllers\LoanController::class,'parentIndex']);
+        Route::post('loans', [\App\Http\Controllers\LoanController::class,'parentStore']);
+        Route::get('loans/{loan}', [\App\Http\Controllers\LoanController::class,'parentShow']);
+        Route::post('loans/{loan}/accrue', [\App\Http\Controllers\LoanController::class,'parentAccrue']);
     });
 
     // Kid routes
@@ -116,6 +122,10 @@ Route::middleware('auth:sanctum')->group(function(){
         // Kid achievements list
         Route::get('achievements', [AchievementController::class, 'kidIndex']);
         Route::post('achievements/{achievement}/kid-note', [AchievementController::class, 'updateKidNote']);
+
+        // Loan endpoints for kid
+        Route::get('loans', [\App\Http\Controllers\LoanController::class,'kidIndex']);
+        Route::post('loans/{loan}/repay', [\App\Http\Controllers\LoanController::class,'kidRepay']);
     });
 });
 
