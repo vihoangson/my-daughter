@@ -26,13 +26,11 @@ Route::get('/user-parent', function () {
 
 Route::view('/login', 'home');
 
-Route::get('/{any}', function () {
-    return view('home');
-})->where('any', '^(?!reward-punishments|user-parent).*$');
-
 Route::resource('reward-punishments', RewardPunishmentController::class);
 
-Route::get('/test-avatar', function () {
+// Fallback for SPA (matches ANY depth: /a, /a/b, /a/b/c ...). Existing concrete routes (like reward-punishments) take precedence.
+Route::fallback(function () {
+    return view('home');
     $user = \App\Models\User::where('type', 'child')->first();
     if ($user && $user->avatar) {
         return [

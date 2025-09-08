@@ -3,7 +3,6 @@ import axios from 'axios';
 import Login from './components/Login.vue';
 import SimpleLogin from './components/SimpleLogin.vue';
 import ParentDashboard from './components/ParentDashboard.vue';
-import KidDashboard from './components/KidDashboard.vue';
 import Homepage from './components/Homepage.vue';
 import GameSelection from './components/GameSelection.vue';
 import PuzzleChallenge from './components/PuzzleChallenge.vue';
@@ -13,6 +12,18 @@ import MusicMaker from './components/MusicMaker.vue';
 import ScienceLab from './components/ScienceLab.vue';
 import AnimalQuiz from './components/AnimalQuiz.vue';
 import KidRequestClassifier from './components/kid/KidRequestClassifier.vue'; // added
+import KidRequests from './components/kid/KidRequests.vue';
+import KidPoints from './components/kid/KidPoints.vue';
+import KidStocks from './components/kid/KidStocks.vue';
+import KidAchievements from './components/kid/KidAchievements.vue';
+import KidProfile from './components/kid/KidProfile.vue';
+import KidDashboardV2 from '@/components/KidDashboardV2.vue';
+
+// Persist auth header across F5
+const existingToken = localStorage.getItem('token');
+if (existingToken) {
+  axios.defaults.headers.common['Authorization'] = `Bearer ${existingToken}`;
+}
 
 const routes = [
   {
@@ -39,7 +50,7 @@ const routes = [
   {
     path: '/user-kid',
     name: 'KidDashboard',
-    component: KidDashboard,
+    component: KidDashboardV2,
     meta: { requiresAuth: true, requiresKid: true }
   },
   {
@@ -89,7 +100,37 @@ const routes = [
     name: 'KidRequestClassifier',
     component: KidRequestClassifier,
     meta: { requiresAuth: true, requiresKid: true }
-  } // new route
+  },
+  {
+    path: '/user-kid/requests',
+    name: 'KidRequests',
+    component: KidRequests,
+    meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/user-kid/points',
+    name: 'KidPoints',
+    component: KidPoints,
+    meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/user-kid/stocks',
+    name: 'KidStocks',
+    component: KidStocks,
+    meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/user-kid/achievements',
+    name: 'KidAchievements',
+    component: KidAchievements,
+    meta: { requiresAuth: true, requiresKid: true }
+  },
+  {
+    path: '/user-kid/profile',
+    name: 'KidProfile',
+    component: KidProfile,
+    meta: { requiresAuth: true, requiresKid: true }
+  }
 ];
 
 const router = createRouter({
@@ -97,7 +138,6 @@ const router = createRouter({
   routes
 });
 
-// Navigation guard
 router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('token');
 
@@ -118,42 +158,53 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // Redirect based on user type
-  if (window.currentUser) {
-    // For root path, redirect based on user type
-    if (to.path === '/') {
-      if (window.currentUser.type === 'parent') {
-        next('/user-parent');
-        return;
-      } else if (window.currentUser.type === 'child') {
-        next('/user-kid');
-        return;
-      }
+  // Resume last protected route when hitting root or login while already authenticated
+  if (window.currentUser && (to.path === '/' || to.path === '/login')) {
+    const last = localStorage.getItem('lastRoute');
+    if (last && last !== '/login' && last !== to.fullPath) {
+      next(last);
+      return;
     }
+  }
 
-    // Redirect kid users to the kid dashboard if they try to access other pages
-    if (window.currentUser.type === 'child' &&
-        to.path !== '/user-kid' &&
-        !to.path.startsWith('/user-kid/') &&
-        to.path !== '/classify-requests') { // allow classification page
+  // Redirect based on user type if landing at root without lastRoute
+  if (window.currentUser && to.path === '/') {
+    if (window.currentUser.type === 'parent') {
+      next('/user-parent');
+      return;
+    } else if (window.currentUser.type === 'child') {
       next('/user-kid');
       return;
     }
   }
 
-  // Check if route requires kid user
+  if (window.currentUser) {
+    if (window.currentUser.type === 'child' &&
+        to.path !== '/user-kid' &&
+        !to.path.startsWith('/user-kid/') &&
+        to.path !== '/classify-requests') {
+      next('/user-kid');
+      return;
+    }
+  }
+
   if (to.meta.requiresKid && (!window.currentUser || window.currentUser.type !== 'child')) {
     next('/login');
     return;
   }
 
-  // Check if route requires parent user
   if (to.meta.requiresParent && (!window.currentUser || window.currentUser.type !== 'parent')) {
     next('/login');
     return;
   }
 
   next();
+});
+
+router.afterEach((to) => {
+  if (window.currentUser && to.meta.requiresAuth) {
+    localStorage.setItem('lastRoute', to.fullPath);
+  }
 });
 
 export default router;
