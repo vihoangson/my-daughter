@@ -1,5 +1,6 @@
 <template>
   <div class="parent-edit-info">
+    <Breadcrumbs />
     <h2>Chỉnh sửa thông tin phụ huynh</h2>
 
     <div v-if="loading" class="loading">Đang tải thông tin...</div>
@@ -53,6 +54,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import Breadcrumbs from '../common/Breadcrumbs.vue';
 
 const loading = ref(true);
 const saving = ref(false);

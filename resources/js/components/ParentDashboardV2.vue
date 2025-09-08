@@ -1,5 +1,6 @@
 <template>
   <div class="parent-dashboard-v2">
+    <Breadcrumbs />
     <h1>Parent Dashboard</h1>
     <div class="menu-grid">
       <router-link class="menu-item" :to="{ name: 'ParentAddPoints' }">
@@ -23,8 +24,10 @@
 </template>
 
 <script>
+import Breadcrumbs from './common/Breadcrumbs.vue';
 export default {
-  name: 'ParentDashboardV2'
+  name: 'ParentDashboardV2',
+  components: { Breadcrumbs }
 };
 </script>
 

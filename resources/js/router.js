@@ -41,7 +41,7 @@ const routes = [
     path: '/parent',
     name: 'ParentDashboard',
     component: ParentDashboardV2,
-    meta: { requiresAuth: true, requiresParent: true }
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Bảng điều khiển' }
   },
   // Legacy path kept for backward compatibility
   {
@@ -147,25 +147,25 @@ const routes = [
     path: '/parent/add-points',
     name: 'ParentAddPoints',
     component: ParentAddPoints,
-    meta: { requiresAuth: true, requiresParent: true }
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Cộng điểm' }
   },
   {
     path: '/parent/approve-requests',
     name: 'ParentApproveRequests',
     component: ParentApproveRequests,
-    meta: { requiresAuth: true, requiresParent: true }
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Phê duyệt yêu cầu' }
   },
   {
     path: '/parent/confirm-achievements',
     name: 'ParentConfirmAchievements',
     component: ParentConfirmAchievements,
-    meta: { requiresAuth: true, requiresParent: true }
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Thành tích' }
   },
   {
     path: '/parent/edit-info',
     name: 'ParentEditInfo',
     component: ParentEditInfo,
-    meta: { requiresAuth: true, requiresParent: true }
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Thông tin tài khoản' }
   }
 ];
 

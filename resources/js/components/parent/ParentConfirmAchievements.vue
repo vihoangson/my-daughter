@@ -1,5 +1,6 @@
 <template>
   <div class="parent-confirm-achievements">
+    <Breadcrumbs />
     <div class="header-bar">
       <h2>Thành tích của trẻ</h2>
       <div class="filters">
@@ -61,6 +62,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import Breadcrumbs from '../common/Breadcrumbs.vue';
 
 const achievements = ref([]);
 const kids = ref([]);

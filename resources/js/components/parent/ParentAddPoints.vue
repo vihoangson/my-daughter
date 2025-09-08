@@ -1,5 +1,6 @@
 <template>
   <div class="parent-add-points">
+    <Breadcrumbs />
     <h2 class="title">Hành vi & Điểm thưởng / phạt</h2>
     <div class="controls">
       <label>Chọn trẻ:
@@ -45,6 +46,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import Breadcrumbs from '../common/Breadcrumbs.vue';
 
 const kids = ref([]);
 const loadingKids = ref(false);

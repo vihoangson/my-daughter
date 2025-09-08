@@ -1,5 +1,6 @@
 <template>
   <div class="parent-approve-requests">
+    <Breadcrumbs />
     <div class="header-bar">
       <h2>Phê duyệt yêu cầu</h2>
       <div class="actions-inline">
@@ -109,6 +110,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import Breadcrumbs from '../common/Breadcrumbs.vue';
 
 const requests = ref([]);
 const loading = ref(false);
