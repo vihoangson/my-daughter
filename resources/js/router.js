@@ -18,6 +18,11 @@ import KidAchievements from './components/kid/KidAchievements.vue';
 import KidProfile from './components/kid/KidProfile.vue';
 import ParentDashboardV2 from './components/ParentDashboardV2.vue';
 import KidDashboardV2 from "@/components/KidDashboardV2.vue";
+// Parent feature placeholders
+import ParentAddPoints from './components/parent/ParentAddPoints.vue';
+import ParentApproveRequests from './components/parent/ParentApproveRequests.vue';
+import ParentConfirmAchievements from './components/parent/ParentConfirmAchievements.vue';
+import ParentEditInfo from './components/parent/ParentEditInfo.vue';
 
 // Persist auth header across F5
 const existingToken = localStorage.getItem('token');
@@ -136,6 +141,31 @@ const routes = [
     name: 'KidProfile',
     component: KidProfile,
     meta: { requiresAuth: true, requiresKid: true }
+  },
+  // New parent feature routes
+  {
+    path: '/parent/add-points',
+    name: 'ParentAddPoints',
+    component: ParentAddPoints,
+    meta: { requiresAuth: true, requiresParent: true }
+  },
+  {
+    path: '/parent/approve-requests',
+    name: 'ParentApproveRequests',
+    component: ParentApproveRequests,
+    meta: { requiresAuth: true, requiresParent: true }
+  },
+  {
+    path: '/parent/confirm-achievements',
+    name: 'ParentConfirmAchievements',
+    component: ParentConfirmAchievements,
+    meta: { requiresAuth: true, requiresParent: true }
+  },
+  {
+    path: '/parent/edit-info',
+    name: 'ParentEditInfo',
+    component: ParentEditInfo,
+    meta: { requiresAuth: true, requiresParent: true }
   }
 ];
 
