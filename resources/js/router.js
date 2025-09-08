@@ -166,6 +166,12 @@ const routes = [
     name: 'ParentEditInfo',
     component: ParentEditInfo,
     meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Thông tin tài khoản' }
+  },
+  {
+    path: '/parent/stocks',
+    name: 'ParentStocks',
+    component: () => import('./components/parent/ParentStocks.vue'),
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Chứng khoán' }
   }
 ];
 

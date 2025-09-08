@@ -227,4 +227,144 @@ class StockController extends Controller
             'stocks' => Stock::orderBy('code')->get(),
         ]);
     }
+
+    // ==== Parent management methods ====
+    public function parentIndex(Request $request)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'],403);
+        $stocks = Stock::orderBy('code')->get();
+        // attach last change percent (previous price vs current)
+        $stockIds = $stocks->pluck('id');
+        $prevPrices = StockPrice::select('stock_id','price')
+            ->whereIn('id', function($q) use ($stockIds){
+                $q->select(DB::raw('MAX(id)'))
+                  ->from('stock_prices')
+                  ->whereIn('stock_id',$stockIds)
+                  ->groupBy('stock_id')
+                  ->get();
+            });
+        // For simplicity compute using last two entries per stock
+        $changes = [];
+        foreach($stocks as $s){
+            $lastTwo = StockPrice::where('stock_id',$s->id)->orderByDesc('captured_at')->limit(2)->pluck('price');
+            $change = null;
+            if($lastTwo->count()===2 && $lastTwo[1]>0){
+                $change = round((($lastTwo[0]-$lastTwo[1])/$lastTwo[1])*100,2);
+            }
+            $changes[$s->id] = $change;
+        }
+        $stocks->transform(function($s) use ($changes){ $s->change_percent = $changes[$s->id]; return $s; });
+        return response()->json(['stocks'=>$stocks]);
+    }
+
+    public function parentRefresh(Request $request)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'],403);
+        // reuse child refresh logic but without type constraint
+        $stocks = Stock::all();
+        DB::transaction(function() use ($stocks){
+            foreach ($stocks as $stock) {
+                $percent = random_int(-10, 10);
+                $new = (int) round(max(1, $stock->current_price * (1 + $percent / 100)));
+                $stock->current_price = $new;
+                $stock->save();
+                StockPrice::create([
+                    'stock_id' => $stock->id,
+                    'price' => $stock->current_price,
+                    'captured_at' => now(),
+                ]);
+                $ids = StockPrice::where('stock_id',$stock->id)->orderByDesc('captured_at')->skip(200)->pluck('id');
+                if ($ids->count()) StockPrice::whereIn('id',$ids)->delete();
+            }
+        });
+        return $this->parentIndex($request);
+    }
+
+    public function parentPrices(Request $request, Stock $stock)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'],403);
+        $history = StockPrice::where('stock_id',$stock->id)->orderBy('captured_at','asc')->limit(200)->get(['price','captured_at']);
+        if ($history->isEmpty()) {
+            StockPrice::create(['stock_id'=>$stock->id,'price'=>$stock->current_price,'captured_at'=>now()]);
+            $history = StockPrice::where('stock_id',$stock->id)->orderBy('captured_at','asc')->limit(200)->get(['price','captured_at']);
+        }
+        return response()->json([
+            'stock'=>$stock->only(['id','code','name','current_price']),
+            'history'=>$history
+        ]);
+    }
+
+    protected function assertParentOwnsKid($parent, $kidId){
+        return $parent->kids()->where('users.id',$kidId)->exists();
+    }
+
+    public function parentKidSummary(Request $request, $kidId)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'],403);
+        if(!$this->assertParentOwnsKid($user,$kidId)) return response()->json(['message'=>'Kid not related'],403);
+        $holdings = StockHolding::with('stock')->where('user_id',$kidId)->get();
+        $invested=$current=$unrealized=0;
+        foreach($holdings as $h){
+            $invested += $h->quantity * $h->avg_price;
+            $current += $h->quantity * $h->stock->current_price;
+            $unrealized += ($h->stock->current_price - $h->avg_price) * $h->quantity;
+        }
+        $realized = StockTrade::where('user_id',$kidId)->where('type','sell')->sum('profit');
+        $kid = User::find($kidId);
+        return response()->json([
+            'kid_id'=>$kidId,
+            'kid_name'=>$kid? $kid->name: null,
+            'acoin_balance' => (int)($kid? $kid->acoin_balance:0),
+            'invested' => (int)$invested,
+            'current_value' => (int)$current,
+            'unrealized_profit' => (int)$unrealized,
+            'realized_profit' => (int)$realized,
+            'equity' => (int)($kid? $kid->acoin_balance + $current:0),
+        ]);
+    }
+
+    public function parentKidHoldings(Request $request, $kidId)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'],403);
+        if(!$this->assertParentOwnsKid($user,$kidId)) return response()->json(['message'=>'Kid not related'],403);
+        $holdings = StockHolding::with('stock')->where('user_id',$kidId)->get();
+        return response()->json(['kid_id'=>$kidId,'holdings'=>$holdings]);
+    }
+
+    public function parentKidTrades(Request $request, $kidId)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'],403);
+        if(!$this->assertParentOwnsKid($user,$kidId)) return response()->json(['message'=>'Kid not related'],403);
+        $trades = StockTrade::with('stock')->where('user_id',$kidId)->orderByDesc('id')->limit(200)->get();
+        $realized = StockTrade::where('user_id',$kidId)->where('type','sell')->sum('profit');
+        return response()->json(['kid_id'=>$kidId,'trades'=>$trades,'realized_profit'=>(int)$realized]);
+    }
+
+    public function parentAdjust(Request $request, Stock $stock)
+    {
+        $user = $request->user();
+        if(!$user || $user->type !== 'parent') return response()->json(['message'=>'Forbidden'],403);
+        $data = $request->validate(['price'=>'required|integer|min:1|max:100000000']);
+        $old = $stock->current_price;
+        $stock->current_price = $data['price'];
+        $stock->save();
+        StockPrice::create(['stock_id'=>$stock->id,'price'=>$stock->current_price,'captured_at'=>now()]);
+        $ids = StockPrice::where('stock_id',$stock->id)->orderByDesc('captured_at')->skip(200)->pluck('id');
+        if($ids->count()) StockPrice::whereIn('id',$ids)->delete();
+        $changePercent = $old>0? round((($stock->current_price-$old)/$old)*100,2): null;
+        return response()->json(['message'=>'Updated','stock'=>[
+            'id'=>$stock->id,
+            'code'=>$stock->code,
+            'name'=>$stock->name,
+            'current_price'=>$stock->current_price,
+            'change_percent'=>$changePercent
+        ]]);
+    }
 }
+

@@ -19,6 +19,10 @@
         <span class="icon">⚙️</span>
         <span class="label">Thay đổi thông tin</span>
       </router-link>
+      <router-link class="menu-item" :to="{ name: 'ParentStocks' }">
+        <span class="icon">📈</span>
+        <span class="label">Quản lý chứng khoán</span>
+      </router-link>
     </div>
   </div>
 </template>

@@ -72,6 +72,15 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::put('rewards/{reward}', [\App\Http\Controllers\RewardItemController::class,'update']);
         Route::delete('rewards/{reward}', [\App\Http\Controllers\RewardItemController::class,'destroy']);
         Route::post('rewards/{reward}/toggle', [\App\Http\Controllers\RewardItemController::class,'toggleActive']);
+
+        // Parent stock management
+        Route::get('stocks', [StockController::class,'parentIndex']);
+        Route::post('stocks/refresh', [StockController::class,'parentRefresh']);
+        Route::get('stocks/{stock}/prices', [StockController::class,'parentPrices']);
+        Route::post('stocks/{stock}/adjust', [StockController::class,'parentAdjust']);
+        Route::get('kids/{kid}/stocks/summary', [StockController::class,'parentKidSummary']);
+        Route::get('kids/{kid}/stocks/holdings', [StockController::class,'parentKidHoldings']);
+        Route::get('kids/{kid}/stocks/trades', [StockController::class,'parentKidTrades']);
     });
 
     // Kid routes
