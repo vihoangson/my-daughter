@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router';
 import axios from 'axios';
 import Login from './components/Login.vue';
 import SimpleLogin from './components/SimpleLogin.vue';
-import ParentDashboard from './components/ParentDashboard.vue';
 import Homepage from './components/Homepage.vue';
 import GameSelection from './components/GameSelection.vue';
 import PuzzleChallenge from './components/PuzzleChallenge.vue';
@@ -17,7 +16,8 @@ import KidPoints from './components/kid/KidPoints.vue';
 import KidStocks from './components/kid/KidStocks.vue';
 import KidAchievements from './components/kid/KidAchievements.vue';
 import KidProfile from './components/kid/KidProfile.vue';
-import KidDashboardV2 from '@/components/KidDashboardV2.vue';
+import ParentDashboardV2 from './components/ParentDashboardV2.vue';
+import KidDashboardV2 from "@/components/KidDashboardV2.vue";
 
 // Persist auth header across F5
 const existingToken = localStorage.getItem('token');
@@ -31,11 +31,17 @@ const routes = [
     name: 'Homepage',
     component: Homepage
   },
+  // New clearer parent route
+  {
+    path: '/parent',
+    name: 'ParentDashboard',
+    component: ParentDashboardV2,
+    meta: { requiresAuth: true, requiresParent: true }
+  },
+  // Legacy path kept for backward compatibility
   {
     path: '/user-parent',
-    name: 'ParentDashboard',
-    component: ParentDashboard,
-    meta: { requiresAuth: true, requiresParent: true }
+    redirect: '/parent'
   },
   {
     path: '/login',
@@ -170,7 +176,7 @@ router.beforeEach(async (to, from, next) => {
   // Redirect based on user type if landing at root without lastRoute
   if (window.currentUser && to.path === '/') {
     if (window.currentUser.type === 'parent') {
-      next('/user-parent');
+      next('/parent');
       return;
     } else if (window.currentUser.type === 'child') {
       next('/user-kid');
