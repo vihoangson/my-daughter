@@ -2,9 +2,16 @@
   <div class="kid-requests-wrapper">
     <h1 class="page-title">Yêu cầu của con</h1>
 
-    <div class="layout">
-      <!-- Form -->
-      <div class="panel form-panel">
+    <div class="top-actions">
+      <button class="toggle-form-btn" @click="toggleForm">
+        <span v-if="!showForm">➕ Thêm yêu cầu mới</span>
+        <span v-else>✖ Ẩn form</span>
+      </button>
+    </div>
+
+    <div class="layout" :class="{ 'single-column': !showForm }">
+      <!-- Form (toggle) -->
+      <div v-if="showForm" class="panel form-panel">
         <h2 class="panel-title">Tạo yêu cầu mới</h2>
         <form @submit.prevent="submitRequest" class="request-form" novalidate>
           <div class="form-group">
@@ -100,11 +107,11 @@
 
 <script>
 import axios from 'axios';
-
 export default {
   name: 'KidRequests',
   data() {
     return {
+      showForm: false,
       form: {
         title: '',
         description: '',
@@ -129,24 +136,17 @@ export default {
     };
   },
   computed: {
-    canAutoClassify() {
-      return this.form.title || this.form.description;
-    }
+    canAutoClassify() { return this.form.title || this.form.description; }
   },
-  mounted() {
-    this.fetchRequests();
-  },
+  mounted() { this.fetchRequests(); },
   methods: {
+    toggleForm() { this.showForm = !this.showForm; },
     async fetchRequests() {
       this.loadingList = true;
       try {
         const { data } = await axios.get('/api/kid/requests');
         this.requests = Array.isArray(data) ? data : (data.data || []);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        this.loadingList = false;
-      }
+      } catch (e) { console.error(e); } finally { this.loadingList = false; }
     },
     onFileChange(e) {
       const file = e.target.files[0];
@@ -156,89 +156,41 @@ export default {
       reader.onload = ev => { this.imagePreview = ev.target.result; };
       reader.readAsDataURL(file);
     },
-    clearImage() {
-      this.form.image = null;
-      this.imagePreview = null;
-    },
-    resetForm() {
-      this.form = { title: '', description: '', type: '', scheduled_time: '', classification: '', image: null };
-      this.imagePreview = null;
-      this.error = '';
-      this.success = '';
-    },
-    validate() {
-      if (!this.form.title) return 'Thiếu tiêu đề';
-      if (!this.form.type) return 'Chọn loại yêu cầu';
-      return '';
-    },
+    clearImage() { this.form.image = null; this.imagePreview = null; },
+    resetForm() { this.form = { title:'', description:'', type:'', scheduled_time:'', classification:'', image:null }; this.imagePreview=null; this.error=''; this.success=''; },
+    validate() { if(!this.form.title) return 'Thiếu tiêu đề'; if(!this.form.type) return 'Chọn loại yêu cầu'; return ''; },
     async submitRequest() {
-      this.error = '';
-      this.success = '';
-      const msg = this.validate();
-      if (msg) { this.error = msg; return; }
+      this.error=''; this.success='';
+      const msg = this.validate(); if(msg){ this.error=msg; return; }
       this.submitting = true;
       try {
         const fd = new FormData();
-        Object.entries(this.form).forEach(([k,v]) => {
-          if (v) fd.append(k, v);
-        });
-        const { data } = await axios.post('/api/kid/requests', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        Object.entries(this.form).forEach(([k,v])=>{ if(v) fd.append(k,v); });
+        await axios.post('/api/kid/requests', fd, { headers:{ 'Content-Type':'multipart/form-data' } });
         this.success = 'Đã gửi yêu cầu!';
         this.resetForm();
         await this.fetchRequests();
-      } catch (e) {
-        console.error(e);
-        this.error = e?.response?.data?.message || 'Lỗi gửi yêu cầu';
-      } finally {
-        this.submitting = false;
-      }
+      } catch(e){ console.error(e); this.error = e?.response?.data?.message || 'Lỗi gửi yêu cầu'; }
+      finally { this.submitting=false; }
     },
     async autoClassify() {
-      if (!this.canAutoClassify) return;
-      this.classifying = true;
-      this.error = '';
+      if(!this.canAutoClassify) return;
+      this.classifying=true; this.error='';
       try {
-        // Quick create a temporary request for classification? Backend has classify endpoint per ID only.
-        // Strategy: create a temp request (without classification) then classify then update form classification.
-        // Simpler: submit minimal quick request? Not ideal. So we disable if not existing.
-        // Instead: notify user to submit first OR implement client heuristic.
-        // Here we'll do a naive heuristic: if title contains 'sách' or 'học' => need else want.
         const text = (this.form.title + ' ' + this.form.description).toLowerCase();
-        if (/học|sách|bút|vở|ăn|sức khỏe|khỏe/.test(text)) this.form.classification = 'need'; else this.form.classification = 'want';
-      } finally {
-        this.classifying = false;
-      }
+        this.form.classification = /học|sách|bút|vở|ăn|sức khỏe|khỏe/.test(text) ? 'need' : 'want';
+      } finally { this.classifying=false; }
     },
-    async autoClassifyExisting(r) {
-      if (!r.id) return;
-      r._classifying = true;
-      try {
-        const { data } = await axios.post(`/api/kid/requests/${r.id}/classify`);
-        if (data && data.classification) {
-          r.classification = data.classification;
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        r._classifying = false;
-      }
+    async autoClassifyExisting(r){
+      if(!r.id) return; r._classifying=true;
+      try { const { data } = await axios.post(`/api/kid/requests/${r.id}/classify`); if(data?.classification) r.classification=data.classification; }
+      catch(e){ console.error(e); }
+      finally { r._classifying=false; }
     },
-    statusLabel(st) {
-      switch(st){
-        case 'pending': return 'Chờ duyệt';
-        case 'approved': return 'Đã duyệt';
-        case 'rejected': return 'Bị từ chối';
-        case 'completed': return 'Hoàn thành';
-        default: return st;
-      }
-    },
-    typeLabel(t) {
-      const f = this.types.find(x=>x.value===t); return f?f.label:t;
-    },
-    classificationLabel(c) { return c === 'need' ? 'Nhu cầu' : (c === 'want' ? 'Mong muốn' : c); },
-    formatTime(dt) {
-      try { return new Date(dt).toLocaleString('vi-VN'); } catch { return dt; }
-    }
+    statusLabel(st){ switch(st){ case 'pending': return 'Chờ duyệt'; case 'approved': return 'Đã duyệt'; case 'rejected': return 'Bị từ chối'; case 'completed': return 'Hoàn thành'; default: return st; }},
+    typeLabel(t){ const f=this.types.find(x=>x.value===t); return f?f.label:t; },
+    classificationLabel(c){ return c==='need' ? 'Nhu cầu' : (c==='want' ? 'Mong muốn' : c); },
+    formatTime(dt){ try { return new Date(dt).toLocaleString('vi-VN'); } catch { return dt; } }
   }
 };
 </script>
@@ -246,11 +198,15 @@ export default {
 <style scoped>
 .kid-requests-wrapper { padding: 1rem 1.25rem 2rem; }
 .page-title { text-align: center; margin: 0 0 1.2rem; font-size: 1.8rem; }
+.top-actions { display:flex; justify-content:center; margin:-.3rem 0 1rem; }
+.toggle-form-btn { background:#ff7f50; border:2px solid #ff9f7a; color:#fff; font-weight:700; padding:.65rem 1.1rem; border-radius:14px; cursor:pointer; font-size:.9rem; box-shadow:0 3px 8px rgba(0,0,0,0.15); }
+.toggle-form-btn:hover { background:#ff986f; }
 .layout { display: grid; gap: 1.25rem; grid-template-columns: 340px 1fr; align-items: start; }
-@media (max-width: 980px){ .layout { grid-template-columns: 1fr; } }
+.layout.single-column { grid-template-columns: 1fr; }
 .panel { background: #ffffff; border: 2px solid #ececf3; border-radius: 16px; padding: 1rem 1.1rem 1.3rem; box-shadow: 0 3px 8px rgba(0,0,0,0.05); }
 .panel-title { margin: 0 0 .9rem; font-size: 1.1rem; font-weight: 700; }
-.form-panel { position: sticky; top: .75rem; }
+.form-panel { position: sticky; top: .75rem; animation: fadeSlide .25s ease; }
+@keyframes fadeSlide { from { opacity:0; transform:translateY(-6px);} to { opacity:1; transform:translateY(0);} }
 .request-form { display: flex; flex-direction: column; gap: .85rem; }
 .form-group { display: flex; flex-direction: column; gap: .35rem; }
 .form-row { display: flex; gap: .75rem; }
@@ -271,7 +227,6 @@ textarea { resize: vertical; }
 .img-preview { position:relative; margin-top:.4rem; width:100%; max-width:240px; border:2px solid #dcdce5; border-radius:12px; overflow:hidden; }
 .img-preview img { display:block; width:100%; height:auto; }
 .clear-btn { position:absolute; top:4px; right:4px; background:#ff4d4f; color:#fff; border:none; border-radius:50%; width:28px; height:28px; font-weight:700; cursor:pointer; }
-
 .list-panel { }
 .panel-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:.4rem; }
 .panel-actions { display:flex; gap:.5rem; }
@@ -306,4 +261,5 @@ textarea { resize: vertical; }
 .row-actions { margin-top:auto; }
 .mini-outline { background:#fff; border:2px solid #6a8dff; color:#3751a8; padding:.35rem .6rem; border-radius:8px; font-size:.65rem; font-weight:600; cursor:pointer; }
 .mini-outline:disabled { opacity:.5; cursor:default; }
+@media (max-width: 980px){ .layout { grid-template-columns: 1fr; } }
 </style>
