@@ -297,6 +297,14 @@ class KidRequestController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
+        // Early guards to prevent null user errors
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+        $authUser = Auth::user();
+        if (!$authUser || $authUser->type !== 'parent') {
+            return response()->json(['message' => 'Only parent user allowed'], 403);
+        }
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:approved,rejected,completed',
             'scheduled_time' => 'nullable|date',
@@ -307,11 +315,10 @@ class KidRequestController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $user = Auth::user();
         $kidRequest = KidRequest::findOrFail($id);
 
         // Get all kids associated with this parent
-        $parent = UserParents::findOrFail($user->id);
+        $parent = UserParents::findOrFail($authUser->id);
         $kidIds = $parent->kids()->pluck('child_id')->toArray();
 
         // Check if the request belongs to one of parent's kids
@@ -320,7 +327,7 @@ class KidRequestController extends Controller
         }
 
         $kidRequest->status = $request->status;
-        $kidRequest->parent_id = $user->id;
+        $kidRequest->parent_id = $authUser->id;
 
         if ($request->filled('scheduled_time')) {
             $kidRequest->scheduled_time = $request->scheduled_time;

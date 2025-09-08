@@ -125,7 +125,7 @@ Route::post('parents/{parent}/attach-kids', [ParentChildController::class, 'atta
 Route::delete('parents/{parent}/kids/{kid}', [ParentChildController::class, 'detachKid']);
 
 // Parent routes for kid requests
-Route::prefix('parent')->group(function() {
+Route::middleware(['auth:sanctum','parent'])->prefix('parent')->group(function() {
     Route::get('requests/pending', [KidRequestController::class, 'parentPendingRequests']);
     Route::get('requests/all', [KidRequestController::class, 'parentAllRequests']);
     Route::put('requests/{id}/status', [KidRequestController::class, 'updateStatus']);
