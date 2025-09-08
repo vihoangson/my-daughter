@@ -13,10 +13,13 @@
           </li>
         </ul>
         <div class="d-flex align-items-center ms-auto">
-          <span v-if="currentUser" class="me-3">
-            Xin chào, {{ currentUser.name }}
-            <span class="badge bg-secondary ms-1">
-              {{ currentUser.type === 'child' ? 'Trẻ em' : 'Phụ huynh' }}
+          <span v-if="currentUser" class="me-3 d-flex align-items-center gap-2 user-greeting">
+            <img v-if="currentUser.type === 'child' && currentUser.avatar_url" :src="currentUser.avatar_url" alt="avatar" class="kid-avatar rounded-circle" />
+            <span>
+              Xin chào, {{ currentUser.name }}
+              <span class="badge bg-secondary ms-1">
+                {{ currentUser.type === 'child' ? 'Trẻ em' : 'Phụ huynh' }}
+              </span>
             </span>
           </span>
           <button class="btn btn-outline-danger" @click="logout">Đăng xuất</button>
@@ -111,3 +114,11 @@ onMounted(async () => {
   }
 });
 </script>
+<style scoped>
+.kid-avatar { width:40px; height:40px; object-fit:cover; border:2px solid #ddd; }
+.user-greeting { font-size:0.95rem; }
+@media (max-width: 576px){
+  .kid-avatar { width:32px; height:32px; }
+  .user-greeting { font-size:0.85rem; }
+}
+</style>
