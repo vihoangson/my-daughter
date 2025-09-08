@@ -81,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::put('profile', [KidController::class, 'updateProfile']);
         Route::post('profile/update', [KidController::class, 'updateProfile']); // Add POST route for file upload
         Route::put('change-password', [KidController::class, 'changePassword']);
+        Route::get('points', [KidController::class, 'points']); // added points history endpoint
 
         // Kid request routes
         Route::get('requests', [KidRequestController::class, 'index']);

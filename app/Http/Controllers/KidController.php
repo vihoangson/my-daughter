@@ -173,4 +173,34 @@ class KidController extends Controller
 
         return response()->json(['message' => 'Password changed successfully']);
     }
+
+    /**
+     * Get points history and stats
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function points(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || $user->type !== 'child') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        $records = RewardPunishment::where('child_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        $totalPoints = 0; $rewardCount = 0; $punishmentCount = 0;
+        foreach ($records as $rp) {
+            if ($rp->type === 'reward') { $totalPoints += $rp->points; $rewardCount++; }
+            else { $totalPoints -= $rp->points; $punishmentCount++; }
+        }
+        return response()->json([
+            'total_points' => $totalPoints,
+            'statistics' => [
+                'total_records' => $records->count(),
+                'reward_count' => $rewardCount,
+                'punishment_count' => $punishmentCount,
+            ],
+            'records' => $records,
+        ]);
+    }
 }
