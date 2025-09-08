@@ -149,5 +149,84 @@ class LoanController extends Controller
         });
         return ['message'=>'Repaid','loan'=>$loan->fresh()];
     }
-}
 
+    // Kid: history (loan + repay)
+    public function kidHistory(Request $request)
+    {
+        $kid = $request->user();
+        if(!$kid || $kid->type !== 'child') return response()->json(['message'=>'Forbidden'],403);
+        $txs = AcoinTransaction::where('kid_id',$kid->id)
+            ->whereIn('type',[ 'loan_disburse','loan_repay'])
+            ->orderByDesc('id')->limit(300)->get();
+        $history = $txs->map(function($t){
+            $interest = 0;
+            if($t->type === 'loan_repay' && preg_match('/lãi:(\d+)/u',$t->description,$m)) $interest=(int)$m[1];
+            return [
+                'id'=>$t->id,
+                'type'=>$t->type==='loan_disburse'?'loan':'repay',
+                'amount'=>abs((int)$t->amount),
+                'interest'=>$interest,
+                'created_at'=>$t->created_at,
+            ];
+        });
+        return ['history'=>$history];
+    }
+
+    // Kid: create loan (maps interest_rate + rate_period to daily basis points)
+    public function kidStore(Request $request)
+    {
+        $kid = $request->user();
+        if(!$kid || $kid->type !== 'child') return response()->json(['message'=>'Forbidden'],403);
+        $parent = $kid->parents()->first();
+        if(!$parent) return response()->json(['message'=>'Không có phụ huynh liên kết'],422);
+        $data = $request->validate([
+            'amount'=>'required|integer|min:1|max:100000000',
+            'term_days'=>'required|integer|min:1|max:365',
+            'interest_rate'=>'nullable|numeric|min:0|max:100',
+            'rate_period'=>'nullable|string|in:term,day,week'
+        ]);
+        $principal = (int)$data['amount'];
+        $termDays = (int)$data['term_days'];
+        $interestRate = (float)($data['interest_rate'] ?? 0); // percent
+        $period = $data['rate_period'] ?? 'term';
+        $dailyRate = 0.0;
+        if($interestRate>0){
+            switch($period){
+                case 'day': $dailyRate = $interestRate/100.0; break; // already per day
+                case 'week': $dailyRate = ($interestRate/100.0)/7.0; break;
+                default: $dailyRate = ($interestRate/100.0)/max(1,$termDays); break; // spread over term
+            }
+        }
+        $ratePerDayBp = max(0,(int)round($dailyRate*10000));
+        if($ratePerDayBp>5000) return response()->json(['message'=>'Lãi suất quá cao'],422);
+        $loan = null;
+        DB::transaction(function() use ($kid,$parent,$principal,$termDays,$ratePerDayBp,&$loan){
+            $kidLocked = User::where('id',$kid->id)->lockForUpdate()->first();
+            $kidLocked->acoin_balance = (int)$kidLocked->acoin_balance + $principal;
+            $kidLocked->save();
+            $start = now();
+            $loan = Loan::create([
+                'kid_id'=>$kidLocked->id,
+                'parent_id'=>$parent->id,
+                'principal'=>$principal,
+                'remaining_principal'=>$principal,
+                'rate_per_day_bp'=>$ratePerDayBp,
+                'term_days'=>$termDays,
+                'start_date'=>$start->toDateString(),
+                'due_date'=>$start->copy()->addDays($termDays)->toDateString(),
+                'status'=>'active',
+                'accrued_interest'=>0,
+                'last_accrual_at'=>$start,
+            ]);
+            AcoinTransaction::create([
+                'kid_id'=>$kidLocked->id,
+                'parent_id'=>$parent->id,
+                'amount'=>$principal,
+                'type'=>'loan_disburse',
+                'description'=>'Giải ngân khoản vay #'.$loan->id,
+                'balance_after'=>$kidLocked->acoin_balance,
+            ]);
+        });
+        return response()->json(['message'=>'Created','loan'=>$loan->fresh()],201);
+    }
+}
