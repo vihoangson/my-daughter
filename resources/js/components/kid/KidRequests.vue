@@ -261,5 +261,25 @@ textarea { resize: vertical; }
 .row-actions { margin-top:auto; }
 .mini-outline { background:#fff; border:2px solid #6a8dff; color:#3751a8; padding:.35rem .6rem; border-radius:8px; font-size:.65rem; font-weight:600; cursor:pointer; }
 .mini-outline:disabled { opacity:.5; cursor:default; }
-@media (max-width: 980px){ .layout { grid-template-columns: 1fr; } }
+@media (max-width: 900px){
+  .layout { grid-template-columns:1fr; }
+  .form-panel { position:static; }
+}
+@media (max-width: 640px){
+  .kid-requests-wrapper { padding: .75rem .7rem 1.25rem; }
+  .panel { padding:.85rem .85rem 1.05rem; border-radius:14px; }
+  .panel-title { font-size:1rem; }
+  .request-form { gap:.7rem; }
+  .request-form input[type=text],
+  .request-form textarea,
+  .request-form select,
+  .request-form input[type=datetime-local] { font-size:.9rem; padding:.5rem .65rem; }
+  .img-preview { max-width:100%; }
+  .toggle-form-btn { width:100%; font-size:.85rem; }
+  .requests-grid { grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:.75rem; }
+  .r-title { font-size:.9rem; }
+  .desc { font-size:.7rem; }
+  .badge { font-size:.5rem; }
+  .mini-outline { font-size:.55rem; }
+}
 </style>
