@@ -33,6 +33,7 @@
       <div class="summary-actions">
         <button class="btn-refresh" :disabled="loadingRefresh" @click="refreshPrices">{{ loadingRefresh? 'Đang làm mới...' : 'Làm mới giá' }}</button>
         <button class="btn-trades-toggle" @click="showTrades = !showTrades">Lịch sử ({{ trades.length }})</button>
+        <button class="btn-bank" @click="showBankLoan=true">Ngân hàng</button>
       </div>
     </div>
 
@@ -138,13 +139,30 @@
       </div>
     </div>
 
+    <!-- Bank Loan Modal -->
+    <div v-if="showBankLoan" class="bank-modal-overlay" @click.self="showBankLoan=false">
+      <div class="bank-modal">
+        <div class="bank-modal-header">
+          <h2 class="modal-title">Ngân hàng Acoin</h2>
+          <button class="close-x" @click="showBankLoan=false">×</button>
+        </div>
+        <BankLoan @updated="fetchSummary">
+          <template #close-btn>
+            <button class="btn-close-inline" @click="showBankLoan=false">Đóng</button>
+          </template>
+        </BankLoan>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+import BankLoan from '../bank/BankLoan.vue';
 export default {
   name: 'KidStocks',
+  components:{ BankLoan },
   data(){
     return {
       summaryLoaded:false,
@@ -166,6 +184,7 @@ export default {
       buyError:'',
       sellError:'',
       showTrades:false,
+      showBankLoan:false,
     };
   },
   computed:{
@@ -273,6 +292,8 @@ export default {
 .summary-actions { margin-top:.6rem; display:flex; gap:.6rem; flex-wrap:wrap; }
 .btn-refresh, .btn-trades-toggle { background:#4a80ff; color:#fff; border:none; padding:.55rem 1rem; border-radius:12px; font-weight:600; cursor:pointer; font-size:.8rem; }
 .btn-trades-toggle { background:#ff9f43; }
+.btn-bank { background:#6a55ff; color:#fff; border:none; padding:.55rem 1rem; border-radius:12px; font-weight:600; cursor:pointer; font-size:.8rem; }
+.btn-bank:hover { background:#5943f0; }
 .loading-block { text-align:center; font-style:italic; padding:1rem 0; }
 .layout { display:grid; gap:1rem; grid-template-columns: 260px 1fr 280px; align-items:start; }
 @media (max-width:1200px){ .layout { grid-template-columns:240px 1fr 250px; } }
@@ -327,6 +348,14 @@ export default {
 .close-trades { background:#ff8a3d; color:#fff; border:none; padding:.45rem .8rem; border-radius:10px; font-weight:600; cursor:pointer; font-size:.7rem; }
 .mini-loading { font-size:.7rem; font-style:italic; }
 .empty-small { font-size:.65rem; opacity:.6; padding:.4rem 0; text-align:center; }
+.bank-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:flex-start; justify-content:center; padding:3rem 1rem 2rem; z-index:1200; overflow:auto; }
+.bank-modal { background:#fff; width:100%; max-width:960px; border:2px solid #e2e6f2; border-radius:24px; padding:1.1rem 1.2rem 1.3rem; box-shadow:0 8px 28px rgba(0,0,0,.18); display:flex; flex-direction:column; gap:1rem; }
+.bank-modal-header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
+.modal-title { margin:0; font-size:1.15rem; font-weight:700; }
+.close-x { background:#ff6b5b; color:#fff; border:none; width:34px; height:34px; border-radius:12px; font-size:1.1rem; line-height:1; cursor:pointer; font-weight:700; display:flex; align-items:center; justify-content:center; }
+.close-x:hover { background:#ff5a47; }
+.btn-close-inline { background:#eceff7; border:none; padding:.45rem .8rem; font-size:.65rem; font-weight:600; border-radius:10px; cursor:pointer; }
+.btn-close-inline:hover { background:#dfe3ee; }
 @media (max-width:700px){
   .page-title { font-size:1.6rem; }
   .trade-actions { grid-template-columns:1fr; }

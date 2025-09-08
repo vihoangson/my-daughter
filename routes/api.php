@@ -126,6 +126,15 @@ Route::middleware('auth:sanctum')->group(function(){
         // Loan endpoints for kid
         Route::get('loans', [\App\Http\Controllers\LoanController::class,'kidIndex']);
         Route::post('loans/{loan}/repay', [\App\Http\Controllers\LoanController::class,'kidRepay']);
+        Route::get('loans/history', [\App\Http\Controllers\LoanController::class,'kidHistory']);
+        Route::post('loans', [\App\Http\Controllers\LoanController::class,'kidStore']);
+        // Bank alias paths expected by frontend BankLoan.vue
+        Route::prefix('bank')->group(function(){
+            Route::get('loans', [\App\Http\Controllers\LoanController::class,'kidIndex']);
+            Route::post('loans', [\App\Http\Controllers\LoanController::class,'kidStore']);
+            Route::get('loans/history', [\App\Http\Controllers\LoanController::class,'kidHistory']);
+            Route::post('loans/{loan}/repay', [\App\Http\Controllers\LoanController::class,'kidRepay']);
+        });
     });
 });
 

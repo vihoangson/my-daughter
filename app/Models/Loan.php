@@ -16,6 +16,8 @@ class Loan extends Model
         'last_accrual_at'=>'datetime'
     ];
 
+    protected $appends = ['paid_amount','paid_interest'];
+
     public function kid(): BelongsTo { return $this->belongsTo(UserKid::class,'kid_id'); }
     public function parent(): BelongsTo { return $this->belongsTo(UserParents::class,'parent_id'); }
 
@@ -42,5 +44,12 @@ class Loan extends Model
         $this->save();
         return false;
     }
-}
 
+    public function getPaidAmountAttribute(){
+        return max(0, (int)$this->principal - (int)$this->remaining_principal);
+    }
+    public function getPaidInterestAttribute(){
+        // Not tracked separately yet; returns 0 so outstanding = remaining_principal + accrued_interest
+        return 0;
+    }
+}
