@@ -97,6 +97,13 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::post('family/regenerate-invite', [FamilyController::class, 'regenerateInvite']);
         Route::post('family/members', [FamilyController::class, 'addMember']);
         Route::delete('family/members/{member}', [FamilyController::class, 'removeMember']);
+
+        // Family Blog routes
+        Route::get('family/blog-posts', [\App\Http\Controllers\BlogFamilyController::class,'index']);
+        Route::post('family/blog-posts', [\App\Http\Controllers\BlogFamilyController::class,'store']);
+        Route::get('family/blog-posts/{post}', [\App\Http\Controllers\BlogFamilyController::class,'show']);
+        Route::put('family/blog-posts/{post}', [\App\Http\Controllers\BlogFamilyController::class,'update']);
+        Route::delete('family/blog-posts/{post}', [\App\Http\Controllers\BlogFamilyController::class,'destroy']);
     });
 
     // Kid routes

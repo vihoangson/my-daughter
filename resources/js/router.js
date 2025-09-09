@@ -178,6 +178,30 @@ const routes = [
     name: 'ParentFamily',
     component: () => import('./components/parent/ParentFamily.vue'),
     meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Gia đình' }
+  },
+  {
+    path: '/parent/family/blog',
+    name: 'ParentFamilyBlogList',
+    component: () => import('./components/parent/ParentFamilyBlogList.vue'),
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Blog gia đình' }
+  },
+  {
+    path: '/parent/family/blog/new',
+    name: 'ParentFamilyBlogNew',
+    component: () => import('./components/parent/ParentFamilyBlogEditor.vue'),
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Bài viết mới' }
+  },
+  {
+    path: '/parent/family/blog/:id/edit',
+    name: 'ParentFamilyBlogEdit',
+    component: () => import('./components/parent/ParentFamilyBlogEditor.vue'),
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Sửa bài viết' }
+  },
+  {
+    path: '/parent/family/blog/:id',
+    name: 'ParentFamilyBlogView',
+    component: () => import('./components/parent/ParentFamilyBlogView.vue'),
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Xem bài viết' }
   }
 ];
 

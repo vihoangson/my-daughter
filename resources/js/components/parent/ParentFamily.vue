@@ -1,7 +1,10 @@
 <template>
   <div class="parent-family">
     <Breadcrumbs />
-    <h2 class="page-title">Quản lý Gia đình</h2>
+    <div class="header-row">
+      <h2 class="page-title">Quản lý Gia đình</h2>
+      <router-link class="blog-btn" :to="{ name:'ParentFamilyBlogList' }">✍️ Viết Blog gia đình</router-link>
+    </div>
 
     <div v-if="loading" class="loading">Đang tải...</div>
     <div v-else>
@@ -186,6 +189,9 @@ onMounted(fetchFamily);
 <style scoped>
 .parent-family { padding:1.2rem 1.4rem 2.2rem; }
 .page-title { margin:0 0 1rem; font-size:1.55rem; }
+.header-row { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:.4rem; }
+.blog-btn { text-decoration:none; background:#f59e0b; color:#fff; padding:.55rem .9rem; border-radius:8px; font-size:.8rem; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,.12); }
+.blog-btn:hover { background:#d97706; }
 .layout { display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); align-items:start; }
 .card { background:#fff; border:1px solid #d8dde3; border-radius:14px; padding:1rem 1rem 1.2rem; box-shadow:0 1px 2px rgba(0,0,0,.05); display:flex; flex-direction:column; gap:.75rem; position:relative; }
 .card.stretch { grid-column:span 2; }
