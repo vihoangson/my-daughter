@@ -12,10 +12,11 @@ return new class extends Migration {
             $table->string('name');
             $table->string('invite_code')->unique();
             $table->string('motto')->nullable();
-            $table->string('timezone')->nullable()->default('Asia/Ho_Chi_Minh');
+            $table->string('timezone',64)->nullable()->default('Asia/Ho_Chi_Minh');
             $table->string('country', 3)->nullable();
             $table->foreignId('primary_parent_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->json('settings')->nullable(); // arbitrary family settings (notifications, limits...)
+            // Use longText instead of JSON for broader DB compatibility; model will still cast to array
+            $table->longText('settings')->nullable();
             $table->timestamps();
             $table->index(['primary_parent_id']);
         });
