@@ -16,10 +16,12 @@ return new class extends Migration {
             $table->longText('content')->nullable();
             $table->enum('visibility', ['public','members','private'])->default('members');
             $table->enum('status', ['draft','published','archived'])->default('draft');
-            $table->json('tags')->nullable();
+            // Use longText instead of JSON for MariaDB compatibility; model still casts to array
+            $table->longText('tags')->nullable();
             $table->boolean('pinned')->default(false);
             $table->string('cover_image')->nullable();
-            $table->json('meta')->nullable(); // any extra metadata (reading time, reactions counts, etc.)
+            // Use longText instead of JSON for meta as well
+            $table->longText('meta')->nullable();
             $table->timestamp('published_at')->nullable();
             $table->timestamps();
             $table->index(['family_id','status']);
