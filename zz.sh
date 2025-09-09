@@ -16,12 +16,14 @@ REMOTE_USER="root"
 REMOTE_HOST="oop.vn"
 REMOTE_PATH="/var/www/vhosts/my-daughter"
 
+ROOM_ID=21839
 # ssh ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_PATH} && git pull"
 # ssh root@oop.vn "cd /var/www/vhosts/my-daughter && php artisan migrate"
 # ssh root@oop.vn "cd /var/www/vhosts/my-daughter && php artisan db:seed"
 
 # Function to display messages
 print_message() {
+
     echo -e "${GREEN}[INFO]${NC} $1"
 }
 
@@ -87,6 +89,12 @@ deploy_to_remote() {
 
     return 0
 }
+notify() {
+  local message="$1"
+  curl -s "https://code.vihoangson.com/api/sent-laka" \
+    -H "Content-Type: application/json" \
+    -d "{\"message\":\"$message\",\"room_id\":$ROOM_ID}"
+}
 
 # Function to run build on remote server
 run_build_on_remote() {
@@ -141,7 +149,7 @@ run_build_on_remote() {
 # Main script execution
 main() {
     print_message "Starting deployment process..."
-
+    notify "Starting deployment process..."
     # Perform git operations
     if perform_git_operations; then
         print_message "Git operations completed successfully."
@@ -165,7 +173,7 @@ main() {
         print_error "Build process failed."
         exit 1
     fi
-
+    notify "All operations completed successfully!"
     print_message "All operations completed successfully!"
 }
 
