@@ -10,6 +10,7 @@
         </select>
       </label>
       <button class="refresh" @click="fetchKids" :disabled="loadingKids">{{ loadingKids ? '...' : '↻' }}</button>
+      <button v-if="selectedKidObj" class="view-history" @click="showHistoryModal = true">Lịch sử điểm</button>
     </div>
     <div v-if="selectedKidObj" class="kid-summary">
       <span><strong>Tổng điểm:</strong> <span :class="{'neg': (selectedKidObj.total_points||0) < 0}">{{ selectedKidObj.total_points ?? 0 }}</span></span>
@@ -43,11 +44,28 @@
     </div>
 
     <div v-if="toast.message" class="toast" :class="toast.type">{{ toast.message }}</div>
+
+    <div v-if="showHistoryModal" class="modal-bg" @click.self="showHistoryModal=false">
+      <div class="modal-content">
+        <h3>Lịch sử cộng/trừ điểm</h3>
+        <button class="close-btn" @click="showHistoryModal=false">×</button>
+        <div v-if="loadingHistory" class="loading">Đang tải...</div>
+        <div v-else-if="!history.length" class="empty">Chưa có dữ liệu.</div>
+        <ul v-else class="history-list">
+          <li v-for="item in history" :key="item.id" :class="item.type">
+            <span class="date">{{ formatDate(item.created_at) }}</span>
+            <span class="desc">{{ item.description }}</span>
+            <span class="pts" :class="item.type">{{ signSymbol(item.type) }}{{ item.points }}</span>
+            <span v-if="item.comment" class="comment">({{ item.comment }})</span>
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import axios from 'axios';
 import Breadcrumbs from '../common/Breadcrumbs.vue';
 
@@ -143,6 +161,30 @@ const applyBehavior = async (b) => {
     console.error(e);showToast(e.response?.data?.message || 'Lỗi áp dụng điểm','err');
   } finally { submittingId.value=null; }
 };
+
+const showHistoryModal = ref(false);
+const history = ref([]);
+const loadingHistory = ref(false);
+
+watch(showHistoryModal, async (val) => {
+  if (val && selectedKid.value) {
+    loadingHistory.value = true;
+    try {
+      const { data } = await axios.get(`/api/parent/kids/${selectedKid.value}/points/history`);
+      history.value = Array.isArray(data) ? data : (data.history || []);
+    } catch(e) {
+      history.value = [];
+    } finally {
+      loadingHistory.value = false;
+    }
+  }
+});
+
+function formatDate(dt) {
+  if (!dt) return '';
+  const d = new Date(dt);
+  return d.toLocaleString('vi-VN', { hour12: false });
+}
 </script>
 
 <style scoped>
@@ -187,5 +229,20 @@ const applyBehavior = async (b) => {
 .kid-summary .neg { color:#b91c1c; }
 .mini-refresh { padding:.25rem .45rem; font-size:.75rem; border:1px solid #ccc; background:#fff; border-radius:5px; cursor:pointer; }
 .mini-refresh:disabled { opacity:.5; cursor:default; }
+.view-history { padding:.35rem .7rem; background:#f3f4f6; border:1px solid #bcd; border-radius:6px; font-size:.9rem; cursor:pointer; margin-left:.5rem; }
+.view-history:hover { background:#e0e7ef; }
+.modal-bg { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,.18); z-index:1000; display:flex; align-items:center; justify-content:center; }
+.modal-content { background:#fff; border-radius:10px; padding:1.2rem 1.5rem 1.2rem 1.2rem; min-width:340px; max-width:95vw; max-height:80vh; overflow:auto; position:relative; box-shadow:0 4px 24px rgba(0,0,0,.13); }
+.close-btn { position:absolute; top:.7rem; right:.9rem; font-size:1.3rem; background:none; border:none; cursor:pointer; color:#888; }
+.close-btn:hover { color:#b91c1c; }
+.history-list { list-style:none; padding:0; margin:0; }
+.history-list li { display:flex; align-items:center; gap:.7rem; padding:.4rem 0; border-bottom:1px solid #f0f0f0; font-size:.97rem; }
+.history-list li.reward .pts { color:#147d35; }
+.history-list li.punishment .pts { color:#b32d2d; }
+.history-list .date { color:#888; font-size:.85em; min-width:110px; }
+.history-list .desc { flex:1; }
+.history-list .comment { color:#555; font-size:.85em; margin-left:.3em; }
+.loading, .empty { padding:1.2em 0; text-align:center; color:#888; }
+@media (max-width: 600px) { .modal-content { min-width:0; padding:1rem; } }
 @media (prefers-color-scheme: dark){ .behavior-card { background:#1f2937; border-color:#374151; } .behavior-card.reward { border-color:#264a34; } .behavior-card.punishment { border-color:#4b2a2a; } .parent-add-points { color:#e5e7eb; } .toast { background:#374151; } }
 </style>
