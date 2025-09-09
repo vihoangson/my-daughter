@@ -29,6 +29,9 @@
             <span class="pts" :class="b.type">{{ signSymbol(b.type) }}{{ b.points }}</span>
             <input type="number" min="1" max="100" v-model.number="b.points" class="pts-input" :disabled="submittingId===b.id" @click.stop />
           </div>
+          <div class="comment-line">
+            <input type="text" v-model="b._comment" class="comment-input" placeholder="Ghi chú (tuỳ chọn)" :disabled="submittingId===b.id" @click.stop />
+          </div>
           <div class="actions">
             <button class="apply-btn" :disabled="!selectedKid||submittingId===b.id" @click="applyBehavior(b)">
               <span v-if="submittingId===b.id" class="spinner" />
@@ -128,12 +131,14 @@ const applyBehavior = async (b) => {
     fd.append('type', b.type==='reward'?'reward':'punishment');
     fd.append('points', b.points);
     fd.append('description', b.label);
+    if (b._comment) fd.append('comment', b._comment); // Gửi comment nếu có
     await axios.post(`/api/parent/kids/${selectedKid.value}/points`, fd);
     if (selectedKidObj.value) {
       const delta = b.type==='reward' ? b.points : -b.points;
       selectedKidObj.value.total_points = (selectedKidObj.value.total_points || 0) + delta;
     }
     showToast((b.type==='reward'?'Đã cộng ':'Đã trừ ')+b.points+' điểm','ok');
+    b._comment = '';
   } catch(e){
     console.error(e);showToast(e.response?.data?.message || 'Lỗi áp dụng điểm','err');
   } finally { submittingId.value=null; }
@@ -166,6 +171,8 @@ const applyBehavior = async (b) => {
 .pts.reward { color:#147d35; }
 .pts.punishment { color:#b32d2d; }
 .pts-input { width:60px; padding:.25rem .35rem; font-size:.8rem; }
+.comment-line { margin-top: .2rem; }
+.comment-input { width: 100%; padding: .25rem .35rem; font-size: .8rem; border: 1px solid #ccc; border-radius: 5px; }
 .actions { margin-top:auto; display:flex; }
 .apply-btn { flex:1; padding:.45rem .5rem; font-size:.8rem; border:none; border-radius:6px; cursor:pointer; font-weight:600; color:#fff; background:linear-gradient(90deg,#2563eb,#1d4ed8); display:flex; align-items:center; justify-content:center; }
 .behavior-card.punishment .apply-btn { background:linear-gradient(90deg,#dc2626,#b91c1c); }
