@@ -104,6 +104,8 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('family/blog-posts/{post}', [\App\Http\Controllers\BlogFamilyController::class,'show']);
         Route::put('family/blog-posts/{post}', [\App\Http\Controllers\BlogFamilyController::class,'update']);
         Route::delete('family/blog-posts/{post}', [\App\Http\Controllers\BlogFamilyController::class,'destroy']);
+        // Family Blog image upload
+        Route::post('family/blog-images', [\App\Http\Controllers\BlogMediaController::class,'store']);
     });
 
     // Kid routes
