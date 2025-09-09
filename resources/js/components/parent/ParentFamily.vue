@@ -47,6 +47,10 @@
           <div v-if="!members.length" class="empty">Chưa có thành viên.</div>
           <ul class="member-list" v-else>
             <li v-for="m in members" :key="m.id" class="member-item" :class="m.type">
+              <div class="avatar" :title="m.name || ('User #'+m.id)">
+                <img v-if="m.avatar_url" :src="m.avatar_url" alt="avatar" />
+                <span v-else>{{ initialOf(m.name) }}</span>
+              </div>
               <div class="info">
                 <span class="name">{{ m.name || 'User #'+m.id }}</span>
                 <span class="role" v-if="m.id===family.primary_parent_id">(Chủ)</span>
@@ -61,7 +65,7 @@
               <input v-model.number="addUserId" type="number" min="1" placeholder="Nhập user_id" />
               <button @click="addMember" :disabled="adding || !addUserId">{{ adding? 'Đang thêm...' : 'Thêm' }}</button>
             </div>
-            <small class="hint">(Hoặc gửi mã mời để người khác tự gia nhập qua quy trình riêng)</small>
+            <small class="hint">(Hoặc g���i mã mời để người khác tự gia nhập qua quy trình riêng)</small>
           </div>
         </div>
       </div>
@@ -171,6 +175,11 @@ function typeLabel(t){
   return t;
 }
 
+function initialOf(name){
+  if(!name) return '?';
+  return name.trim().charAt(0).toUpperCase();
+}
+
 onMounted(fetchFamily);
 </script>
 
@@ -195,6 +204,8 @@ button:disabled { opacity:.55; cursor:default; }
 .mt { margin-top:.6rem; }
 .member-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.4rem; max-height:360px; overflow:auto; }
 .member-item { background:#f8fafc; border:1px solid #d6dde3; border-radius:8px; padding:.5rem .65rem; display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
+.member-item .avatar { width:42px; height:42px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:.8rem; color:#334155; overflow:hidden; flex-shrink:0; box-shadow:0 0 0 1px #d6dde3; }
+.member-item .avatar img { width:100%; height:100%; object-fit:cover; display:block; }
 .member-item .info { display:flex; flex-direction:column; line-height:1.1; }
 .member-item .name { font-weight:600; font-size:.85rem; }
 .member-item .role { font-size:.65rem; color:#2563eb; font-weight:600; }
@@ -213,12 +224,4 @@ button:disabled { opacity:.55; cursor:default; }
 .toast { position:fixed; bottom:1rem; right:1rem; background:#1e293b; color:#fff; padding:.65rem .9rem; font-size:.75rem; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
 .toast.err { background:#b91c1c; }
 .toast.ok { background:#166534; }
-@media (prefers-color-scheme: dark){
-  .card { background:#1f2937; border-color:#334155; }
-  .form-grid input, .add-flex input { background:#273549; border-color:#3b4a5c; color:#e2e8f0; }
-  .invite-code { background:#334155; color:#e2e8f0; }
-  .member-item { background:#273549; border-color:#334155; }
-  .parent-family { color:#e2e8f0; }
-}
 </style>
-

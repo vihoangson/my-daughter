@@ -50,7 +50,8 @@ class FamilyController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
         $family = $this->getOrCreateFamily($user);
-        $family->load(['users:id,name,email,type,family_id']);
+        // Include avatar column so avatar_url accessor can build URL
+        $family->load(['users:id,name,email,type,family_id,avatar']);
         return response()->json([
             'family' => $family,
         ]);
@@ -105,6 +106,7 @@ class FamilyController extends Controller
         }
         $target->family_id = $family->id;
         $target->save();
+        $target->refresh(); // ensure avatar field loaded
         return response()->json(['message' => 'Đã thêm thành viên', 'member' => $target]);
     }
 
@@ -126,4 +128,3 @@ class FamilyController extends Controller
         return response()->json(['message' => 'Đã xoá thành viên']);
     }
 }
-
