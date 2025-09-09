@@ -92,7 +92,7 @@ deploy_to_remote() {
 run_build_on_remote() {
     print_message "Running build process on remote server..."
     # Execute SSH command to run npm build
-    ssh ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_PATH} && npm i"
+    # ssh ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_PATH} && npm i"
 
     # Execute SSH command to run npm build
     ssh ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_PATH} && npm run build"
