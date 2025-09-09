@@ -172,6 +172,12 @@ const routes = [
     name: 'ParentStocks',
     component: () => import('./components/parent/ParentStocks.vue'),
     meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Chứng khoán' }
+  },
+  {
+    path: '/parent/family',
+    name: 'ParentFamily',
+    component: () => import('./components/parent/ParentFamily.vue'),
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Gia đình' }
   }
 ];
 

@@ -9,6 +9,7 @@ use App\Http\Controllers\GameScoreController;
 use App\Http\Controllers\StockController; // added
 use App\Http\Controllers\AnimalQuizController; // added
 use App\Http\Controllers\AchievementController; // added
+use App\Http\Controllers\FamilyController; // added
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -89,6 +90,13 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::post('loans', [\App\Http\Controllers\LoanController::class,'parentStore']);
         Route::get('loans/{loan}', [\App\Http\Controllers\LoanController::class,'parentShow']);
         Route::post('loans/{loan}/accrue', [\App\Http\Controllers\LoanController::class,'parentAccrue']);
+
+        // Family management
+        Route::get('family', [FamilyController::class, 'show']);
+        Route::put('family', [FamilyController::class, 'update']);
+        Route::post('family/regenerate-invite', [FamilyController::class, 'regenerateInvite']);
+        Route::post('family/members', [FamilyController::class, 'addMember']);
+        Route::delete('family/members/{member}', [FamilyController::class, 'removeMember']);
     });
 
     // Kid routes

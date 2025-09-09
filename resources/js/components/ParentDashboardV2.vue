@@ -23,6 +23,10 @@
         <span class="icon">📈</span>
         <span class="label">Quản lý chứng khoán</span>
       </router-link>
+      <router-link class="menu-item" :to="{ name: 'ParentFamily' }">
+        <span class="icon">👨‍👩‍👧‍👦</span>
+        <span class="label">Gia đình</span>
+      </router-link>
     </div>
   </div>
 </template>

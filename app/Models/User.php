@@ -28,6 +28,7 @@ class User extends Authenticatable
         'login_attempts',
         'locked_until',
         'acoin_balance', // added Acoin balance
+        'family_id', // added family reference
     ];
 
     /**
@@ -89,5 +90,16 @@ class User extends Authenticatable
     {
         // For child users: parent accounts
         return $this->belongsToMany(UserParents::class, 'child_parent', 'child_id', 'parent_id')->withTimestamps();
+    }
+
+    // Family relationship
+    public function family()
+    {
+        return $this->belongsTo(Family::class);
+    }
+
+    public function familyBlogPosts()
+    {
+        return $this->hasMany(BlogFamily::class, 'user_id');
     }
 }
