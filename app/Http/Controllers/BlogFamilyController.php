@@ -34,7 +34,7 @@ class BlogFamilyController extends Controller
             $q->where(function($sub) use ($search){
                 $sub->where('title','like',"%$search%")
                     ->orWhere('content','like',"%$search%")
-                    ->orWhereJsonContains('tags', $search);
+                    ->orWhere('tags','like',"%$search%"); // replaced JSON contains due to longText column
             });
         }
         if ($status = $request->get('status')) {

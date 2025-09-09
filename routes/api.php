@@ -175,3 +175,7 @@ Route::middleware(['auth:sanctum','parent'])->prefix('parent')->group(function()
     Route::get('requests/all', [KidRequestController::class, 'parentAllRequests']);
     Route::put('requests/{id}/status', [KidRequestController::class, 'updateStatus']);
 });
+
+// Public blog post view route
+Route::get('public/blog-posts/{post}', [\App\Http\Controllers\BlogFamilyController::class,'publicShow']);
+

@@ -3,11 +3,14 @@
     <Breadcrumbs />
     <div class="top-bar">
       <h2 class="title">{{ post.title }}</h2>
-      <div class="actions">
+      <div class="actions" v-if="canManage">
         <router-link :to="{name:'ParentFamilyBlogList'}" class="btn ghost">← Danh sách</router-link>
         <router-link :to="{name:'ParentFamilyBlogEdit', params:{id:post.id}}" class="btn warn">Sửa</router-link>
         <button class="btn" @click="togglePublish" :disabled="busy">{{ post.status==='published' ? 'Đưa về nháp' : 'Xuất bản' }}</button>
         <button class="btn danger" @click="remove" :disabled="busy">Xoá</button>
+      </div>
+      <div class="actions" v-else>
+        <router-link :to="{name:'Homepage'}" class="btn ghost">Trang chủ</router-link>
       </div>
     </div>
 
@@ -25,7 +28,7 @@
 
     <article class="content" v-html="post.content || '<em>(Không có nội dung)</em>'"></article>
 
-    <div class="foot-actions">
+    <div class="foot-actions" v-if="canManage">
       <router-link :to="{name:'ParentFamilyBlogEdit', params:{id:post.id}}" class="btn warn">✏️ Sửa</router-link>
       <button class="btn" @click="togglePin" :disabled="busy">{{ post.pinned? 'Bỏ ghim' : 'Ghim bài' }}</button>
     </div>
@@ -51,25 +54,43 @@ const post = reactive({});
 const loaded = ref(false);
 const busy = ref(false);
 const toast = reactive({ message:'', type:'ok' });
+const canManage = ref(false);
 let toastTimer=null;
 
 function showToast(m,t='ok',ttl=2400){toast.message=m;toast.type=t;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.message='',ttl);}
 function formatDate(dt){ return new Date(dt).toLocaleString('vi-VN',{hour12:false}); }
-function statusLabel(s){ return {draft:'Nháp', published:'Đã xuất bản', archived:'Lưu trữ'}[s]||s; }
+function statusLabel(s){ return {draft:'Nháp', published:'Đã xu���t bản', archived:'Lưu trữ'}[s]||s; }
 function visibilityLabel(v){ return {public:'Công khai', members:'Thành viên', private:'Riêng tư'}[v]||v; }
 
 async function load(){
+  const token = localStorage.getItem('token');
+  let authTried = false;
+  if(token){
+    try {
+      authTried = true;
+      const { data } = await axios.get(`/api/parent/family/blog-posts/${id}`);
+      Object.assign(post, data.post);
+      canManage.value = true;
+      loaded.value = true;
+      return;
+    } catch(e){
+      // fall through to public attempt
+    }
+  }
+  // Public attempt
   try {
-    const { data } = await axios.get(`/api/parent/family/blog-posts/${id}`);
+    const { data } = await axios.get(`/api/public/blog-posts/${id}`);
     Object.assign(post, data.post);
+    canManage.value = false;
     loaded.value = true;
   } catch(e){
-    showToast('Không tải được bài','err');
-    setTimeout(()=> router.push({name:'ParentFamilyBlogList'}), 1500);
+    showToast('Không tìm thấy hoặc không công khai','err');
+    setTimeout(()=> router.push({name:'Homepage'}), 1600);
   }
 }
 
 async function togglePublish(){
+  if(!canManage.value) return;
   busy.value=true;
   try {
     const target = post.status==='published' ? 'draft' : 'published';
@@ -80,11 +101,13 @@ async function togglePublish(){
   } catch(e){ showToast('Lỗi','err'); } finally { busy.value=false; }
 }
 async function togglePin(){
+  if(!canManage.value) return;
   busy.value=true;
   try { await axios.put(`/api/parent/family/blog-posts/${post.id}`, { pinned: !post.pinned }); post.pinned=!post.pinned; showToast(post.pinned?'Đã ghim':'Đã bỏ ghim'); }
   catch(e){ showToast('Lỗi','err'); } finally { busy.value=false; }
 }
 async function remove(){
+  if(!canManage.value) return;
   if(!confirm('Xoá bài viết này?')) return;
   busy.value=true;
   try { await axios.delete(`/api/parent/family/blog-posts/${post.id}`); showToast('Đã xoá'); setTimeout(()=> router.push({name:'ParentFamilyBlogList'}),800); }
@@ -129,4 +152,3 @@ onMounted(load);
 .toast.err { background:#b91c1c; }
 .toast.ok { background:#166534; }
 </style>
-
