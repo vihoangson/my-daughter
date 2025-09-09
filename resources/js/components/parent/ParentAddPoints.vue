@@ -25,7 +25,12 @@
       <div class="behavior-grid">
         <div v-for="b in section.behaviors" :key="b.id" class="behavior-card" :class="[b.type,{disabled:!selectedKid,working:submittingId===b.id}]">
           <div class="icon">{{ b.icon }}</div>
-          <div class="label" :title="b.label">{{ b.label }}</div>
+          <div class="label" :title="b.custom ? (b._customLabel || b.label) : b.label">
+            <template v-if="b.custom">
+              <input type="text" v-model="b._customLabel" placeholder="Mô tả..." class="custom-label-input" :disabled="submittingId===b.id" @click.stop />
+            </template>
+            <template v-else>{{ b.label }}</template>
+          </div>
           <div class="points-line">
             <span class="pts" :class="b.type">{{ signSymbol(b.type) }}{{ b.points }}</span>
             <input type="number" min="1" max="100" v-model.number="b.points" class="pts-input" :disabled="submittingId===b.id" @click.stop />
@@ -96,6 +101,8 @@ const baseBehaviors = () => ([
   { id:'mindfulness-break', label:'Tự nghỉ giải lao lành mạnh (không thiết bị)', points:3, type:'reward', icon:'🧘' },
   { id:'help-without-ask', label:'Chủ động giúp việc mà không ai nhắc', points:6, type:'reward', icon:'🤝' },
   { id:'manage-calendar', label:'Tự ghi & nhớ lịch hoạt động', points:5, type:'reward', icon:'📅' },
+  // Custom OTHER reward
+  { id:'other-reward', label:'Khác (cộng)', points:1, type:'reward', icon:'➕', custom:true },
   // Punishment behaviors
   { id:'miss-hw', label:'Không làm bài tập', points:5, type:'punishment', icon:'⌛' },
   { id:'argue', label:'Cãi lời', points:4, type:'punishment', icon:'⚠️' },
@@ -112,7 +119,9 @@ const baseBehaviors = () => ([
   { id:'procrastinate', label:'Trì hoãn quá nhiều', points:4, type:'punishment', icon:'🐢' },
   { id:'tantrum', label:'Nổi nóng / mất kiểm soát', points:6, type:'punishment', icon:'💢' },
   { id:'misuse-device', label:'Dùng thiết bị sai mục đích', points:4, type:'punishment', icon:'🖥️' },
-  { id:'unhealthy-eat', label:'Ăn vặt không lành mạnh quá mức', points:3, type:'punishment', icon:'🍬' }
+  { id:'unhealthy-eat', label:'Ăn vặt không lành mạnh quá mức', points:3, type:'punishment', icon:'🍬' },
+  // Custom OTHER punishment
+  { id:'other-punishment', label:'Khác (trừ)', points:1, type:'punishment', icon:'➖', custom:true }
 ]);
 
 const signSymbol = (type)=> type==='reward'?'+':'-';
@@ -143,19 +152,22 @@ const selectedKidObj = computed(()=> kids.value.find(k=>k.id === selectedKid.val
 const applyBehavior = async (b) => {
   if(!selectedKid.value){ showToast('Chọn trẻ trước','warn'); return; }
   if(!b.points || b.points<1){ showToast('Điểm phải >=1','warn'); return; }
+  if (b.custom && (!b._customLabel || !b._customLabel.trim())) { showToast('Nhập mô tả cho mục Khác','warn'); return; }
   submittingId.value = b.id;
   try {
     const fd = new FormData();
     fd.append('type', b.type==='reward'?'reward':'punishment');
     fd.append('points', b.points);
-    fd.append('description', b.label);
-    if (b._comment) fd.append('comment', b._comment); // Gửi comment nếu có
+    const desc = b.custom ? (b._customLabel.trim()) : b.label;
+    fd.append('description', desc);
+    if (b._comment) fd.append('comment', b._comment);
     await axios.post(`/api/parent/kids/${selectedKid.value}/points`, fd);
     if (selectedKidObj.value) {
       const delta = b.type==='reward' ? b.points : -b.points;
       selectedKidObj.value.total_points = (selectedKidObj.value.total_points || 0) + delta;
     }
     showToast((b.type==='reward'?'Đã cộng ':'Đã trừ ')+b.points+' điểm','ok');
+    if (b.custom) { b._customLabel=''; }
     b._comment = '';
   } catch(e){
     console.error(e);showToast(e.response?.data?.message || 'Lỗi áp dụng điểm','err');
@@ -245,4 +257,5 @@ function formatDate(dt) {
 .loading, .empty { padding:1.2em 0; text-align:center; color:#888; }
 @media (max-width: 600px) { .modal-content { min-width:0; padding:1rem; } }
 @media (prefers-color-scheme: dark){ .behavior-card { background:#1f2937; border-color:#374151; } .behavior-card.reward { border-color:#264a34; } .behavior-card.punishment { border-color:#4b2a2a; } .parent-add-points { color:#e5e7eb; } .toast { background:#374151; } }
+.custom-label-input { width:100%; padding:.25rem .35rem; font-size:.75rem; border:1px solid #ccc; border-radius:5px; }
 </style>
