@@ -5,8 +5,11 @@
         <h3>Achievements</h3>
         <div class="ach-actions">
           <input class="search" v-model="achQuery" placeholder="Search..." />
-          <button class="btn" @click="resetAchForm">New</button>
+          <button class="btn" @click="openCreateModal">New</button>
         </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn primary" @click="openCreateModal">Tạo mới</button>
       </div>
       <div class="table-responsive">
         <table class="table">
@@ -45,37 +48,79 @@
       </div>
     </div>
 
-    <div class="card form">
-      <h3>{{ achEditMode ? 'Edit Achievement' : 'Create Achievement' }}</h3>
-      <div class="grid-2">
-        <label>
-          <span>Name</span>
-          <input v-model="achForm.name" placeholder="Name" />
-        </label>
-        <label>
-          <span>Category</span>
-          <input v-model="achForm.category" placeholder="Category (optional)" />
-        </label>
-      </div>
-      <div class="grid-1">
-        <label>
-          <span>Note</span>
-          <input v-model="achForm.note" placeholder="Short note (optional)" />
-        </label>
-        <label>
-          <span>Image</span>
-          <input type="file" accept="image/*" @change="onImageChange" />
-        </label>
-        <label v-if="achEditMode && achForm.image_url" class="switch">
-          <input type="checkbox" v-model="achForm.remove_image" />
-          <span>Remove existing image</span>
-        </label>
-      </div>
-      <div class="actions-end">
-        <button class="btn" @click="resetAchForm" v-if="achEditMode">Cancel</button>
-        <button class="btn primary" @click="saveAchievement" :disabled="saveBusy">
-          {{ saveBusy ? 'Saving...' : (achEditMode ? 'Update' : 'Create') }}
-        </button>
+    <!-- Modal for Create/Edit with AI suggestions -->
+    <div v-if="modalOpen" class="modal-overlay" @click.self="closeModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>{{ achEditMode ? 'Edit Achievement' : 'Create Achievement' }}</h3>
+          <button class="btn ghost" @click="closeModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-grid">
+            <!-- Form -->
+            <div class="modal-col">
+              <div class="grid-2">
+                <label>
+                  <span>Name</span>
+                  <input v-model="achForm.name" placeholder="Name" />
+                </label>
+                <label>
+                  <span>Category</span>
+                  <input v-model="achForm.category" placeholder="Category (optional)" />
+                </label>
+              </div>
+              <div class="grid-1">
+                <label>
+                  <span>Note</span>
+                  <input v-model="achForm.note" placeholder="Short note (optional)" />
+                </label>
+                <label>
+                  <span>Image</span>
+                  <input type="file" accept="image/*" @change="onImageChange" />
+                </label>
+                <label v-if="achEditMode && achForm.image_url" class="switch">
+                  <input type="checkbox" v-model="achForm.remove_image" />
+                  <span>Remove existing image</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- AI Suggestions -->
+            <div class="modal-col ai-panel">
+              <div class="ai-header">
+                <span>AI suggestions</span>
+                <button class="btn small" :disabled="aiLoading" @click="aiSuggest">{{ aiLoading ? 'Thinking…' : 'Suggest' }}</button>
+              </div>
+              <label>
+                <span>Describe what you want</span>
+                <textarea v-model="aiPrompt" rows="4" placeholder="e.g., Weekly reading challenge for kids, 30 minutes per day"></textarea>
+              </label>
+              <div class="ai-suggestions" v-if="aiSuggestions">
+                <div class="ai-item">
+                  <div class="ai-label">Name</div>
+                  <div class="ai-value">{{ aiSuggestions.name || '-' }}</div>
+                  <button class="btn tiny" @click="applySuggestion('name', aiSuggestions.name)" :disabled="!aiSuggestions.name">Apply</button>
+                </div>
+                <div class="ai-item">
+                  <div class="ai-label">Category</div>
+                  <div class="ai-value">{{ aiSuggestions.category || '-' }}</div>
+                  <button class="btn tiny" @click="applySuggestion('category', aiSuggestions.category)" :disabled="!aiSuggestions.category">Apply</button>
+                </div>
+                <div class="ai-item">
+                  <div class="ai-label">Note</div>
+                  <div class="ai-value">{{ aiSuggestions.note || '-' }}</div>
+                  <button class="btn tiny" @click="applySuggestion('note', aiSuggestions.note)" :disabled="!aiSuggestions.note">Apply</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" @click="closeModal" v-if="achEditMode">Cancel</button>
+          <button class="btn primary" @click="saveAchievement" :disabled="saveBusy">
+            {{ saveBusy ? 'Saving...' : (achEditMode ? 'Update' : 'Create') }}
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -94,6 +139,10 @@ export default {
       achEditMode: false,
       saveBusy: false,
       delBusyId: null,
+      modalOpen: false,
+      aiPrompt: '',
+      aiLoading: false,
+      aiSuggestions: null,
     };
   },
   computed: {
@@ -130,19 +179,48 @@ export default {
     onImageChange(e) {
       this.achForm.image = e.target.files && e.target.files[0] ? e.target.files[0] : null;
     },
+    openCreateModal() {
+      this.resetAchForm();
+      this.modalOpen = true;
+    },
+    closeModal() {
+      this.modalOpen = false;
+    },
     editAchievement(a) {
       this.achForm = { id: a.id, name: a.name, category: a.category || '', note: a.note || '', image: null, image_url: a.image_url || null, remove_image: false };
       this.achEditMode = true;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      this.modalOpen = true;
     },
-    buildFormData() {
-      const fd = new FormData();
-      fd.append('name', this.achForm.name);
-      if (this.achForm.category) fd.append('category', this.achForm.category);
-      if (this.achForm.note) fd.append('note', this.achForm.note);
-      if (this.achForm.image) fd.append('image', this.achForm.image);
-      if (this.achEditMode && this.achForm.remove_image) fd.append('remove_image', '1');
-      return fd;
+    applySuggestion(field, value) {
+      if (!value) return;
+      this.achForm[field] = value;
+    },
+    async aiSuggest() {
+      this.aiLoading = true;
+      try {
+        // Try backend if available
+        const prompt = this.aiPrompt || this.achForm.name || this.achForm.note || 'achievement idea';
+        try {
+          const { data } = await this.$axios?.post?.('/api/ai/suggest-achievement', { prompt }) || {};
+          if (data && (data.name || data.category || data.note)) {
+            this.aiSuggestions = data;
+            return;
+          }
+        } catch(e) { /* fall back to local */ }
+
+        // Local heuristic fallback
+        const text = (this.aiPrompt || this.achForm.name || '').toLowerCase();
+        const cat = text.includes('read') || text.includes('book') ? 'Reading' :
+                    text.includes('math') ? 'Math' :
+                    text.includes('music') ? 'Music' :
+                    text.includes('puzzle') ? 'Puzzle' : 'General';
+        const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+        const name = this.achForm.name || cap((this.aiPrompt || 'New Achievement').slice(0, 40));
+        const note = this.achForm.note || `Complete the ${cat.toLowerCase()} task consistently this week. Parent can adjust points/reward accordingly.`;
+        this.aiSuggestions = { name, category: cat, note };
+      } finally {
+        this.aiLoading = false;
+      }
     },
     async saveAchievement() {
       if (!this.achForm.name) return alert('Name is required');
@@ -158,6 +236,7 @@ export default {
         }
         await this.loadAchievements();
         this.resetAchForm();
+        this.modalOpen = false;
       } catch (e) {
         console.error(e);
         alert('Failed to save achievement');
@@ -177,6 +256,15 @@ export default {
       } finally {
         this.delBusyId = null;
       }
+    },
+    buildFormData() {
+      const fd = new FormData();
+      fd.append('name', this.achForm.name);
+      if (this.achForm.category) fd.append('category', this.achForm.category);
+      if (this.achForm.note) fd.append('note', this.achForm.note);
+      if (this.achForm.image) fd.append('image', this.achForm.image);
+      if (this.achEditMode && this.achForm.remove_image) fd.append('remove_image', '1');
+      return fd;
     },
   }
 };
@@ -202,5 +290,22 @@ label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
 .switch { display: flex; align-items: center; gap: 10px; }
 .actions-end { display: flex; align-items: end; justify-content: end; }
 .muted { color: var(--muted); }
-</style>
 
+/***** Modal *****/
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: grid; place-items: center; z-index: 50; }
+.modal { width: min(980px, 96vw); background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.25); display: grid; grid-template-rows: auto 1fr auto; max-height: 90vh; }
+.modal-header, .modal-footer { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.modal-footer { border-top: 1px solid var(--border); border-bottom: none; display: flex; justify-content: flex-end; gap: 8px; }
+.modal-body { padding: 16px; overflow: auto; }
+.modal-grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+.modal-col { display: grid; gap: 12px; align-content: start; }
+.ai-panel { background: var(--bg); border: 1px dashed var(--border); border-radius: 10px; padding: 10px; }
+.ai-header { display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--muted); }
+.ai-item { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: grid; gap: 6px; margin-top: 8px; }
+.ai-label { font-size: 12px; color: var(--muted); }
+.ai-value { font-size: 13px; }
+textarea { background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 10px; }
+.btn.small { padding: 6px 10px; font-size: 12px; }
+.btn.tiny { padding: 4px 8px; font-size: 12px; }
+.toolbar { display: flex; gap: 8px; margin: 8px 0 12px; }
+</style>
