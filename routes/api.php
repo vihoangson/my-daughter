@@ -181,3 +181,13 @@ Route::middleware(['auth:sanctum','parent'])->prefix('parent')->group(function()
 // Public blog post view route
 Route::get('public/blog-posts/{post}', [\App\Http\Controllers\BlogFamilyController::class,'publicShow']);
 
+// Alias: parent achievements without /parent prefix
+Route::middleware('auth:sanctum')->group(function(){
+    Route::middleware('parent')->group(function() {
+        Route::get('achievements', [AchievementController::class, 'parentIndex']);
+        Route::post('achievements', [AchievementController::class, 'store']);
+        Route::put('achievements/{achievement}', [AchievementController::class, 'update']);
+        Route::delete('achievements/{achievement}', [AchievementController::class, 'destroy']);
+        Route::post('achievements/{achievement}/toggle-kid/{kid}', [AchievementController::class, 'toggleKid']);
+    });
+});

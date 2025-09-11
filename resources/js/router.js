@@ -202,6 +202,13 @@ const routes = [
     name: 'ParentFamilyBlogView',
     component: () => import('./components/parent/ParentFamilyBlogView.vue'),
     meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Xem bài viết' }
+  },
+  // Admin setting route
+  {
+    path: '/admin-setting',
+    name: 'admin-setting',
+    component: () => import('./components/admin/AdminSetting.vue'),
+    meta: { requiresAuth: true, requiresParent: true, breadcrumb: 'Cài đặt quản trị' }
   }
 ];
 

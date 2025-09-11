@@ -25,7 +25,11 @@
       </router-link>
       <router-link class="menu-item" :to="{ name: 'ParentFamily' }">
         <span class="icon">👨‍👩‍👧‍👦</span>
-        <span class="label">Gia đình</span>
+        <span class="label">Gia đình 111</span>
+      </router-link>
+      <router-link class="menu-item" :to="{ name: 'admin-setting' }">
+        <span class="icon">🛡️</span>
+        <span class="label">Cài đặt quản trị</span>
       </router-link>
     </div>
   </div>
