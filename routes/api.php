@@ -11,6 +11,7 @@ use App\Http\Controllers\AnimalQuizController; // added
 use App\Http\Controllers\AchievementController; // added
 use App\Http\Controllers\FamilyController; // added
 use App\Http\Controllers\AiController; // added
+use App\Http\Controllers\AdminController; // added
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -196,4 +197,10 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::delete('achievements/{achievement}', [AchievementController::class, 'destroy']);
         Route::post('achievements/{achievement}/toggle-kid/{kid}', [AchievementController::class, 'toggleKid']);
     });
+});
+
+// Admin routes
+Route::middleware('auth:sanctum')->group(function(){
+    // Admin overview stats
+    Route::get('admin/system-stats', [AdminController::class, 'systemStats']);
 });

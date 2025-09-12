@@ -4,6 +4,7 @@ import Dashboard from '../components/Dashboard.vue';
 import KidDashboard from '../components/kid/KidDashboard.vue'; // added
 import KidRequestClassifier from '../components/kid/KidRequestClassifier.vue'; // new
 import AdminSetting from '../components/admin/AdminSetting.vue'; // admin
+import Overview from '../components/admin/Overview.vue'; // admin overview
 
 const routes = [
   { path: '/login', name: 'login', component: Login, meta: { guest: true } },
@@ -11,6 +12,7 @@ const routes = [
   { path: '/user-kid', name: 'kid-dashboard', component: KidDashboard, meta: { requiresAuth: true } }, // added
   { path: '/classify-requests', name: 'classify-requests', component: KidRequestClassifier, meta: { requiresAuth: true } }, // new
   { path: '/admin-setting', name: 'admin-setting', component: AdminSetting, meta: { requiresAuth: true } }, // admin
+  { path: '/admin/overview', name: 'admin-overview', component: Overview, meta: { requiresAuth: true } }, // admin overview
 ];
 
 const router = createRouter({

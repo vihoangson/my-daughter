@@ -14,18 +14,10 @@
       <aside class="sidebar">
         <nav>
           <ul>
-            <li :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
-              <span>Overview</span>
-            </li>
-            <li :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">
-              <span>Users</span>
-            </li>
-            <li :class="{ active: activeTab === 'security' }" @click="activeTab = 'security'">
-              <span>Security</span>
-            </li>
-            <li :class="{ active: activeTab === 'preferences' }" @click="activeTab = 'preferences'">
-              <span>Preferences</span>
-            </li>
+            <!-- Removed Overview, Users, Security, Preferences tabs -->
+              <li :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
+                  <span>Overview</span>
+              </li>
             <!-- New: Achievements management -->
             <li :class="{ active: activeTab === 'achievements' }" @click="activeTab = 'achievements'">
               <span>Achievements</span>
@@ -37,43 +29,8 @@
       <!-- Main Content -->
       <main class="content">
         <!-- Overview -->
-        <section v-if="activeTab === 'overview'" class="panel-grid">
-          <div class="card stat">
-            <div class="stat-title">Active Users</div>
-            <div class="stat-value">1,248</div>
-            <div class="stat-trend up">+4.2% this week</div>
-          </div>
-          <div class="card stat">
-            <div class="stat-title">Requests Today</div>
-            <div class="stat-value">312</div>
-            <div class="stat-trend down">-1.1% vs yesterday</div>
-          </div>
-          <div class="card stat">
-            <div class="stat-title">Errors</div>
-            <div class="stat-value">3</div>
-            <div class="stat-trend neutral">Stable</div>
-          </div>
-          <div class="card stat">
-            <div class="stat-title">Avg. Response</div>
-            <div class="stat-value">182ms</div>
-            <div class="stat-trend up">+2.4% faster</div>
-          </div>
-
-          <div class="card wide">
-            <div class="card-header">
-              <h3>Recent Activity</h3>
-              <button class="btn ghost" @click="mockRefresh">Refresh</button>
-            </div>
-            <ul class="activity">
-              <li v-for="(item, i) in activities" :key="i">
-                <span class="dot" :class="item.type" />
-                <div class="activity-main">
-                  <div class="title">{{ item.title }}</div>
-                  <div class="meta">{{ item.time }}</div>
-                </div>
-              </li>
-            </ul>
-          </div>
+        <section v-if="activeTab === 'overview'" class="panel">
+          <Overview />
         </section>
 
         <!-- Users -->
@@ -170,12 +127,13 @@
 import themeConfig from '../../config/theme';
 import axios from 'axios';
 import AchievementsManager from './AchievementsManager.vue';
+import Overview from './Overview.vue';
 export default {
   name: 'AdminSetting',
-  components: { AchievementsManager },
+  components: { AchievementsManager, Overview },
   data() {
     return {
-      activeTab: 'overview',
+      activeTab: 'achievements',
       activities: [
         { title: 'User John created a new family group', time: '2m ago', type: 'success' },
         { title: '3 failed login attempts detected', time: '18m ago', type: 'warning' },
