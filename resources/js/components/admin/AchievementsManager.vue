@@ -201,7 +201,7 @@ export default {
         // Try backend if available
         const prompt = this.aiPrompt || this.achForm.name || this.achForm.note || 'achievement idea';
         try {
-          const { data } = await this.$axios?.post?.('/api/ai/suggest-achievement', { prompt }) || {};
+          const { data } = await axios.post('/api/ai/suggest-achievement', { prompt });
           if (data && (data.name || data.category || data.note)) {
             this.aiSuggestions = data;
             return;

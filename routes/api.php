@@ -10,6 +10,7 @@ use App\Http\Controllers\StockController; // added
 use App\Http\Controllers\AnimalQuizController; // added
 use App\Http\Controllers\AchievementController; // added
 use App\Http\Controllers\FamilyController; // added
+use App\Http\Controllers\AiController; // added
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +34,9 @@ Route::post('auth/simple-login', [AuthController::class, 'simpleLogin']);
 Route::middleware('auth:sanctum')->group(function(){
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
+
+    // AI utilities
+    Route::post('ai/suggest-achievement', [AiController::class, 'suggestAchievement']);
 
     // Parent routes
     Route::middleware('parent')->prefix('parent')->group(function() {
