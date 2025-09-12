@@ -50,7 +50,12 @@ class AchievementController extends Controller
         $achievement->note = $data['note'] ?? null;
         if($request->hasFile('image')){
             $disk = $this->resolvedPublicDisk();
-            $achievement->image_path = $request->file('image')->store('achievements', $disk);
+            $path = $request->file('image')->store('achievements', $disk);
+            if(!$path){
+                \Log::warning('Achievement image store failed on create', ['disk'=>$disk]);
+                return response()->json(['message'=>'Không lưu được hình. Kiểm tra quyền ghi storage và cấu hình filesystem.'], 500);
+            }
+            $achievement->image_path = $path;
         }
         $achievement->save();
         return response()->json($achievement->fresh(), 201);
@@ -93,7 +98,12 @@ class AchievementController extends Controller
                 }
             }
             $disk = $this->resolvedPublicDisk();
-            $achievement->image_path = $request->file('image')->store('achievements', $disk);
+            $path = $request->file('image')->store('achievements', $disk);
+            if(!$path){
+                \Log::warning('Achievement image store failed on update', ['disk'=>$disk, 'id'=>$achievement->id]);
+                return response()->json(['message'=>'Không lưu được hình. Kiểm tra quyền ghi storage và cấu hình filesystem.'], 500);
+            }
+            $achievement->image_path = $path;
         }
         $achievement->save();
         return $achievement->fresh();
@@ -190,6 +200,10 @@ class AchievementController extends Controller
     // Decide which public-facing disk to use. Prefer s3_public only if configured; otherwise fallback to public
     protected function resolvedPublicDisk(): string
     {
+        $forceLocal = env('FORCE_PUBLIC_LOCAL', env('APP_ENV') === 'local');
+        if ($forceLocal) {
+            return 'public';
+        }
         $s3 = config('filesystems.disks.s3_public');
         $hasS3 = is_array($s3)
             && !empty($s3['bucket'])
