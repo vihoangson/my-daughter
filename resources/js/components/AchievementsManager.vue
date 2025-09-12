@@ -247,7 +247,9 @@ const submit = async () => {
     if(form.image) fd.append('image', form.image);
     if(editingId.value){
       if(removeImage.value) fd.append('remove_image','1');
-      await axios.post(`/api/parent/achievements/${editingId.value}?_method=PUT`, fd, { headers:{'Content-Type':'multipart/form-data'} });
+      // move _method into body to ensure Laravel recognizes method spoofing
+      fd.append('_method','PUT');
+      await axios.post(`/api/parent/achievements/${editingId.value}`, fd, { headers:{'Content-Type':'multipart/form-data'} });
       formSuccess.value='Đã cập nhật';
     } else {
       await axios.post('/api/parent/achievements', fd, { headers:{'Content-Type':'multipart/form-data'} });
