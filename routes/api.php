@@ -70,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('achievements', [AchievementController::class, 'parentIndex']);
         Route::post('achievements', [AchievementController::class, 'store']);
         Route::put('achievements/{achievement}', [AchievementController::class, 'update']);
+        Route::post('achievements/{achievement}', [AchievementController::class, 'update']); // allow POST for multipart update
         Route::delete('achievements/{achievement}', [AchievementController::class, 'destroy']);
         Route::post('achievements/{achievement}/toggle-kid/{kid}', [AchievementController::class, 'toggleKid']);
 
@@ -191,6 +192,7 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('achievements', [AchievementController::class, 'parentIndex']);
         Route::post('achievements', [AchievementController::class, 'store']);
         Route::put('achievements/{achievement}', [AchievementController::class, 'update']);
+        Route::post('achievements/{achievement}', [AchievementController::class, 'update']); // allow POST for multipart update
         Route::delete('achievements/{achievement}', [AchievementController::class, 'destroy']);
         Route::post('achievements/{achievement}/toggle-kid/{kid}', [AchievementController::class, 'toggleKid']);
     });
