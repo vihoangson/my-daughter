@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function(){
 
     // AI utilities
     Route::post('ai/suggest-achievement', [AiController::class, 'suggestAchievement']);
+    Route::post('ai/answer', [AiController::class, 'answer']); // new: general Q&A endpoint
 
     // Parent routes
     Route::middleware('parent')->prefix('parent')->group(function() {

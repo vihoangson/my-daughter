@@ -38,21 +38,37 @@
       <div class="header">
         <h3>AI Suggestion</h3>
       </div>
-      <div class="ai-form">
-        <input
-          v-model="aiPrompt"
-          type="text"
+      <div class="ai-form ai-grid">
+        <textarea
+          v-model="question"
+          rows="3"
           class="ai-input"
-          placeholder="Describe a goal for kids (e.g., Daily reading challenge)"
+          placeholder="Ask a concise question (e.g., What’s a good weekly learning goal for 8-year-olds?)"
         />
-        <button class="ai-btn" :disabled="aiLoading" @click="suggestAi">
-          {{ aiLoading ? 'Generating...' : 'Suggest via AI' }}
-        </button>
+        <div class="ai-actions">
+          <button class="ai-btn" :disabled="aiLoading || !question.trim()" @click="askAi">
+            {{ aiLoading ? 'Thinking…' : 'Ask AI' }}
+          </button>
+          <button class="btn ghost" :disabled="aiLoading && !aiAnswer" @click="clearAi">Clear</button>
+        </div>
       </div>
-      <div v-if="aiResult" class="ai-result">
-        <div class="ai-row"><strong>Name:</strong> <span>{{ aiResult.name }}</span></div>
-        <div class="ai-row"><strong>Category:</strong> <span>{{ aiResult.category }}</span></div>
-        <div class="ai-row"><strong>Note:</strong> <span>{{ aiResult.note }}</span></div>
+
+      <div v-if="aiLoading" class="ai-skeleton">
+        <div class="line" />
+        <div class="line w-80" />
+        <div class="line w-60" />
+      </div>
+
+      <div v-if="aiError" class="ai-error">{{ aiError }}</div>
+
+      <div v-if="aiAnswer && !aiLoading" class="ai-result chat">
+        <div class="bubble">
+          <pre class="answer">{{ aiAnswer }}</pre>
+          <div class="row">
+            <small class="muted">AI response</small>
+            <button class="btn ghost sm" @click="copyAnswer">Copy</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -103,9 +119,10 @@ export default {
         achievements: 0,
         requests_by_status: null,
       },
-      aiPrompt: '',
+      question: '',
       aiLoading: false,
-      aiResult: null,
+      aiAnswer: '',
+      aiError: '',
     };
   },
   mounted() {
@@ -124,18 +141,30 @@ export default {
         this.loading = false;
       }
     },
-    async suggestAi() {
+    async askAi() {
       if (this.aiLoading) return;
       this.aiLoading = true;
-      this.aiResult = null;
+      this.aiError = '';
+      this.aiAnswer = '';
       try {
-        const { data } = await axios.post('/api/ai/suggest-achievement', { prompt: this.aiPrompt });
-        this.aiResult = data;
+        const { data } = await axios.post('/api/ai/answer', { question: this.question });
+        this.aiAnswer = (data && data.answer) ? data.answer : '';
+        if (!this.aiAnswer) this.aiError = 'No answer returned.';
       } catch (e) {
-        this.aiResult = { name: 'New Achievement', category: 'General', note: 'Try setting a simple, trackable goal for this week.' };
+        this.aiError = 'Failed to get AI answer.';
       } finally {
         this.aiLoading = false;
       }
+    },
+    clearAi() {
+      this.question = '';
+      this.aiAnswer = '';
+      this.aiError = '';
+    },
+    async copyAnswer() {
+      try {
+        await navigator.clipboard.writeText(this.aiAnswer || '');
+      } catch (_) { /* noop */ }
     },
   },
 };
@@ -156,11 +185,25 @@ export default {
 .dot.info { background: #0284c7; }
 
 .ai-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 12px; }
-.ai-input { background: var(--panel, #fff); border: 1px solid var(--border, #e5e7eb); padding: 10px 12px; border-radius: 10px; }
+textarea.ai-input { resize: vertical; min-height: 88px; }
 .ai-btn { background: var(--primary, #3b82f6); border: 1px solid var(--primary-600, #2563eb); color: #fff; padding: 10px 14px; border-radius: 10px; cursor: pointer; }
 .ai-btn[disabled] { opacity: .6; cursor: not-allowed; }
 .ai-result { display: grid; gap: 6px; }
 .ai-row strong { display: inline-block; width: 90px; color: var(--muted, #64748b); }
+
+.ai-grid { display: grid; gap: 10px; }
+.ai-actions { display: flex; gap: 10px; }
+.ai-skeleton { display: grid; gap: 8px; margin-top: 10px; }
+.ai-skeleton .line { height: 12px; background: linear-gradient(90deg, rgba(148,163,184,.2), rgba(148,163,184,.35), rgba(148,163,184,.2)); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; }
+.ai-skeleton .line.w-80 { width: 80%; }
+.ai-skeleton .line.w-60 { width: 60%; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.ai-error { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; margin-top: 10px; }
+.chat .bubble { background: var(--hover, #f8fafc); border: 1px solid var(--border, #e5e7eb); border-radius: 12px; padding: 12px; }
+.chat .answer { white-space: pre-wrap; margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
+.chat .row { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.muted { color: var(--muted, #64748b); }
+.btn.sm { padding: 6px 8px; font-size: 12px; border-radius: 6px; }
 
 @media (max-width: 1024px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }

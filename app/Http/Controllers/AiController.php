@@ -132,4 +132,44 @@ class AiController extends Controller
             'note' => $note,
         ];
     }
+
+    // General AI answer endpoint
+    public function answer(Request $request, DeepSeekClient $deepSeek)
+    {
+        $data = $request->validate([
+            'question' => ['required','string','max:4000'],
+        ]);
+
+        $question = trim((string)$data['question']);
+        if ($question === '') {
+            return response()->json(['answer' => 'Please enter a question.'], 422);
+        }
+
+        // Fallback if no API key
+        if (!$deepSeek->hasApiKey()) {
+            return response()->json([
+                'answer' => 'AI service is not configured. Here is a basic response to your question: "' . Str::limit($question, 200) . '". Consider refining the question or enabling AI for detailed answers.'
+            ]);
+        }
+
+        $messages = [
+            ['role' => 'system', 'content' => 'You are a helpful assistant. Answer concisely, in the same language as the user question. Keep it under 120 words unless strictly necessary.'],
+            ['role' => 'user', 'content' => $question],
+        ];
+
+        $resp = $deepSeek->chatCompletions($messages, [
+            'temperature' => 0.5,
+            'max_tokens' => 400,
+        ]);
+
+        if (!$resp['success'] || !is_string($resp['content']) || $resp['content'] === '') {
+            return response()->json([
+                'answer' => 'Sorry, the AI could not generate an answer right now. Please try again.'
+            ], 200);
+        }
+
+        return response()->json([
+            'answer' => trim($resp['content'])
+        ]);
+    }
 }
