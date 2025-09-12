@@ -23,6 +23,17 @@ class Achievement extends Model
     public function getImageUrlAttribute(): ?string
     {
         if(!$this->image_path) return null;
-        try { return Storage::disk('s3_public')->url($this->image_path); } catch(\Throwable $e) { return Storage::url($this->image_path); }
+        $disk = $this->resolvedPublicDisk();
+        try { return Storage::disk($disk)->url($this->image_path); } catch(\Throwable $e) { return null; }
+    }
+
+    protected function resolvedPublicDisk(): string
+    {
+        $s3 = config('filesystems.disks.s3_public');
+        $hasS3 = is_array($s3)
+            && !empty($s3['bucket'])
+            && (!empty($s3['key']) || env('AWS_ACCESS_KEY_ID'))
+            && (!empty($s3['secret']) || env('AWS_SECRET_ACCESS_KEY'));
+        return $hasS3 ? 's3_public' : 'public';
     }
 }

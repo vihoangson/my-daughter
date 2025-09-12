@@ -49,7 +49,7 @@ class AchievementController extends Controller
         $achievement->category = $data['category'] ?? null;
         $achievement->note = $data['note'] ?? null;
         if($request->hasFile('image')){
-            $disk = array_key_exists('s3_public', config('filesystems.disks')) ? 's3_public' : 'public';
+            $disk = $this->resolvedPublicDisk();
             $achievement->image_path = $request->file('image')->store('achievements', $disk);
         }
         $achievement->save();
@@ -92,7 +92,7 @@ class AchievementController extends Controller
                     }
                 }
             }
-            $disk = array_key_exists('s3_public', config('filesystems.disks')) ? 's3_public' : 'public';
+            $disk = $this->resolvedPublicDisk();
             $achievement->image_path = $request->file('image')->store('achievements', $disk);
         }
         $achievement->save();
@@ -185,5 +185,16 @@ class AchievementController extends Controller
             $achievement->kids()->attach($kid->id, ['kid_note'=>$data['kid_note'] ?? null]);
         }
         return ['id'=>$achievement->id,'kid_note'=>$data['kid_note'] ?? null];
+    }
+
+    // Decide which public-facing disk to use. Prefer s3_public only if configured; otherwise fallback to public
+    protected function resolvedPublicDisk(): string
+    {
+        $s3 = config('filesystems.disks.s3_public');
+        $hasS3 = is_array($s3)
+            && !empty($s3['bucket'])
+            && (!empty($s3['key']) || env('AWS_ACCESS_KEY_ID'))
+            && (!empty($s3['secret']) || env('AWS_SECRET_ACCESS_KEY'));
+        return $hasS3 ? 's3_public' : 'public';
     }
 }
