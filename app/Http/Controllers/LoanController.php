@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 
 class LoanController extends Controller
 {
-    // Parent: list all loans for their kids
+    // Parent: list all loans for their k   ids
     public function parentIndex(Request $request)
     {
         $parent = $request->user();
